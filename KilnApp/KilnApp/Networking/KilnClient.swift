@@ -172,6 +172,7 @@ final class KilnClient: WebSocketServiceDelegate {
         guard let rest else { return }
         firingStartOffset = startAt ?? 0
         history.removeAll()
+        status = nil
         do {
             try await rest.run(profile: name, startAt: startAt)
             lastCommandError = nil
@@ -250,11 +251,12 @@ final class KilnClient: WebSocketServiceDelegate {
             let wasActive = self.status?.state == .running || self.status?.state == .paused
             self.status = status
 
-            // When the kiln returns to idle (e.g. after Stop), clear history
-            // and reset the offset so no stale line is drawn.
+            // When the kiln returns to idle (e.g. after Stop), clear all
+            // firing state so stale values don't bleed into the next firing.
             if status.state == .idle {
                 if wasActive {
                     self.history.removeAll()
+                    self.status = nil
                 }
                 self.firingStartOffset = 0
                 self.handleStateNotifications(status.state)

@@ -299,6 +299,9 @@ struct StartFiringSheet: View {
                 if selectedProfile == nil { selectedProfile = client.profiles.first }
                 startAtMinutes = 0
             }
+            .onDisappear {
+                startAtMinutes = 0
+            }
         }
     }
 
@@ -308,6 +311,7 @@ struct StartFiringSheet: View {
         await client.run(profile: profile.name, startAt: startAtMinutes * 60)
         isStarting = false
         if client.lastCommandError == nil {
+            startAtMinutes = 0   // Reset so next firing starts at 0 min.
             dismiss()
         }
     }
