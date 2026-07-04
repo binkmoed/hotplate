@@ -1,0 +1,17 @@
+[Unit]
+Description=Kiln Controller Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/kiln-controller
+Environment=PATH=/home/pi/kiln-controller/venv/bin
+ExecStart=/home/pi/kiln-controller/venv/bin/python3 kiln-controller.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

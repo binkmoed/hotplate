@@ -1,0 +1,267 @@
+import Foundation
+import SwiftUI
+
+/// High-level connection state surfaced to the UI.
+enum ConnectionPhase: Equatable {
+    case disconnected
+    case connecting
+    case connected
+    case failed(String)
+}
+
+/// The single source of truth for the app. Owns the REST client and the WebSocket service,
+/// exposes observable state for SwiftUI, and is driven entirely on the main actor.
+@MainActor
+@Observable
+final class KilnClient: WebSocketServiceDelegate {
+
+    // MARK: Published state
+
+    /// Saved host/port (nil until first setup). Use `configure(host:port:)` to set.
+    private(set) var connection: ServerConnection?
+
+    /// Overall phase shown by the connect banner.
+    private(set) var phase: ConnectionPhase = .disconnected
+
+    /// Per-socket online indicator.
+    private(set) var socketState: [String: Bool] = [:]
+
+    /// Latest live status (nil until first frame).
+    private(set) var status: KilnStatus?
+
+    /// Active profile (from the backlog message).
+    private(set) var activeProfile: Profile?
+
+    /// Profile chosen on the dashboard to preview when idle. Persists across sessions
+    /// via UserDefaults; defaults to the first profile on the server.
+    var previewProfileName: String? {
+        get { UserDefaults.standard.string(forKey: "kiln.previewProfile") }
+        set { UserDefaults.standard.set(newValue, forKey: "kiln.previewProfile") }
+    }
+
+    /// The profile whose schedule the dashboard should show right now:
+    /// the active firing profile if running, otherwise the user's selected preview profile.
+    var displayProfile: Profile? {
+        if currentState == .running || currentState == .paused,
+           let name = status?.profile, let p = profiles.first(where: { $0.name == name }) {
+            return p
+        }
+        if let preview = previewProfileName, let p = profiles.first(where: { $0.name == preview }) {
+            return p
+        }
+        return profiles.first
+    }
+
+    /// Temperature history seeded from the backlog log, appended each status frame.
+    private(set) var history: [ChartSample] = []
+
+    /// Profiles on the server.
+    private(set) var profiles: [Profile] = []
+
+    /// Display config (units, currency, kWh rate, element power).
+    private(set) var displayConfig: DisplayConfig = .defaultConfig
+
+    /// Full config document from `GET /api/config`.
+    private(set) var fullConfig: FullConfig?
+
+    /// Last server-side error from a REST command (cleared on next success).
+    private(set) var lastCommandError: String?
+
+    // MARK: Internals
+
+    private let session: URLSession
+    private var ws: WebSocketService?
+    private var rest: ControllerAPI?
+    private var lastStateForNotifications: KilnState?
+
+    init(session: URLSession = .shared) {
+        self.session = session
+        if let saved = ServerConnection.saved {
+            self.connection = saved
+        }
+    }
+
+    var isConnected: Bool { phase == .connected }
+    var currentState: KilnState { status?.state ?? .idle }
+
+    var restAPI: ControllerAPI? { rest }
+
+    // MARK: - Connection lifecycle
+
+    /// Validate and persist a host/port, then connect all sockets.
+    func connect(to newConnection: ServerConnection) async {
+        disconnect()
+        connection = newConnection
+        phase = .connecting
+        let rest = ControllerAPI(baseURL: newConnection.httpBase, session: session)
+        self.rest = rest
+        do {
+            _ = try await rest.checkHealth()
+        } catch {
+            phase = .failed(error.localizedDescription)
+            return
+        }
+        newConnection.save()
+        let service = WebSocketService(delegate: self, session: session)
+        self.ws = service
+        service.connect(to: newConnection.wsBase)
+        Task { await self.refreshFullConfig() }
+        phase = .connected
+    }
+
+    /// Reconnect using the previously saved connection (if any).
+    func reconnect() async {
+        guard let connection else { return }
+        await connect(to: connection)
+    }
+
+    func disconnect() {
+        ws?.disconnect()
+        ws = nil
+        phase = .disconnected
+        socketState.removeAll()
+    }
+
+    /// Forget the saved connection entirely.
+    func forgetConnection() {
+        disconnect()
+        ServerConnection.clear()
+        connection = nil
+        status = nil
+        activeProfile = nil
+        history.removeAll()
+        profiles.removeAll()
+        fullConfig = nil
+    }
+
+    // MARK: - Commands (REST)
+
+    func run(profile name: String, startAt: Double? = nil) async {
+        guard let rest else { return }
+        do {
+            try await rest.run(profile: name, startAt: startAt)
+            lastCommandError = nil
+        } catch {
+            lastCommandError = error.localizedDescription
+        }
+    }
+
+    func stop() async {
+        guard let rest else { return }
+        do {
+            try await rest.stop()
+            lastCommandError = nil
+        } catch {
+            lastCommandError = error.localizedDescription
+        }
+    }
+
+    func pause() async {
+        guard let rest else { return }
+        do { try await rest.pause(); lastCommandError = nil }
+        catch { lastCommandError = error.localizedDescription }
+    }
+
+    func resume() async {
+        guard let rest else { return }
+        do { try await rest.resume(); lastCommandError = nil }
+        catch { lastCommandError = error.localizedDescription }
+    }
+
+    // MARK: - Config
+
+    func refreshFullConfig() async {
+        guard let rest else { return }
+        if let cfg = try? await rest.getConfig() {
+            self.fullConfig = cfg
+        }
+    }
+
+    @discardableResult
+    func updateConfig(_ updates: [String: Any]) async -> (Bool, String) {
+        guard let rest else { return (false, "Not connected") }
+        do {
+            let res = try await rest.updateConfig(updates)
+            lastCommandError = nil
+            await refreshFullConfig()
+            return (true, res.message + (res.restartRequired ? " (restart required)" : ""))
+        } catch {
+            lastCommandError = error.localizedDescription
+            return (false, error.localizedDescription)
+        }
+    }
+
+    // MARK: - WebSocketServiceDelegate
+
+    nonisolated func statusSocket(didReceiveBacklog message: BacklogMessage) {
+        Task { @MainActor in
+            self.activeProfile = message.profile
+            // Seed the live chart from the backlog log, if any.
+            if let log = message.log, !log.isEmpty {
+                self.history = log.compactMap { s in
+                    guard let t = s.runtime, let temp = s.temperature else { return nil }
+                    return ChartSample(runtime: t, temperature: temp, target: s.target ?? 0)
+                }
+                self.status = log.last
+            } else {
+                self.history = []
+            }
+        }
+    }
+
+    nonisolated func statusSocket(didReceiveStatus status: KilnStatus) {
+        Task { @MainActor in
+            self.status = status
+            if let t = status.runtime, let temp = status.temperature {
+                self.history.append(ChartSample(
+                    runtime: t,
+                    temperature: temp,
+                    target: status.target ?? 0
+                ))
+                // Cap history length to keep the chart responsive over long firings.
+                if self.history.count > 1200 {
+                    self.history.removeFirst(self.history.count - 1200)
+                }
+            }
+            self.handleStateNotifications(status.state)
+        }
+    }
+
+    nonisolated func storageSocket(didReceiveProfiles profiles: [Profile]) {
+        Task { @MainActor in self.profiles = profiles.sorted { $0.name < $1.name } }
+    }
+
+    nonisolated func storageSocket(didReceiveResponse resp: String, cmd: String?, profile: Profile?) {
+        // Responses are handled imperatively by the editor via refreshStorage() after writes.
+    }
+
+    nonisolated func configSocket(didReceiveConfig config: DisplayConfig) {
+        Task { @MainActor in self.displayConfig = config }
+    }
+
+    nonisolated func webSocketSocket(_ path: String, didChangeConnected connected: Bool) {
+        Task { @MainActor in self.socketState[path] = connected }
+    }
+
+    // MARK: - Outbound via WS
+
+    func refreshStorage() { ws?.storageList() }
+    func saveProfile(_ profile: Profile, force: Bool, completion: @escaping (Bool) -> Void) {
+        guard let ws else { completion(false); return }
+        ws.storagePut(profile: profile, force: force)
+        // The server pushes the updated list right after a successful PUT; rely on the
+        // list update rather than a per-write ack. Optimistic completion after a tick.
+        completion(true)
+    }
+    func deleteProfile(name: String) { ws?.storageDelete(name: name) }
+
+    // MARK: - Notifications
+
+    private func handleStateNotifications(_ newState: KilnState?) {
+        guard let newState else { return }
+        let previous = lastStateForNotifications
+        lastStateForNotifications = newState
+        guard previous != newState else { return }
+        NotificationManager.shared.notifyStateChange(from: previous, to: newState, status: status)
+    }
+}
