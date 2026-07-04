@@ -88,10 +88,15 @@ struct ConnectionSetupView: View {
             return
         }
         let trimmed = host.trimmingCharacters(in: .whitespaces)
+        Logger.shared.debug("Attempting connection to \(trimmed):\(portValue)")
         let connection = ServerConnection(host: trimmed, port: portValue)
         await client.connect(to: connection)
+
         if case .failed(let msg) = client.phase {
-            validationError = msg
+            Logger.shared.error("Connection failed: \(msg)")
+            validationError = "Cannot connect to server"
+        } else if client.phase == .connected {
+            Logger.shared.info("Connection successful")
         }
     }
 }

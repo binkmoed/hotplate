@@ -18,6 +18,7 @@
 		BFDE86E9D53A4254C3C91EEE /* Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732F4EEBF630A2C97CAD28B2 /* Messages.swift */; };
 		C30DE4F8EEA0D331E2E3A99A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5253AFD0883CE88667185CD /* RootView.swift */; };
 		D73A58D999F79738D7C6F920 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC72C5661FC14E96649E0024 /* Format.swift */; };
+		E66660A304714B3FA22E2667 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF03B4C24CEA4F45ADB4745B /* Logger.swift */; };
 		D97A783B7599AA16B8417960 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3994D41CF13580566F3491 /* SettingsView.swift */; };
 		E0EB1728585D801962235222 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC934F48782DB87F76FE96C /* DashboardView.swift */; };
 		E82ECB12130484F2068CE5C3 /* ControllerAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897AD01CCC234441AF90E113 /* ControllerAPI.swift */; };
@@ -43,6 +44,7 @@
 		8F9B0AF77CC4B095427B4397 /* KilnAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnAppApp.swift; sourceTree = "<group>"; };
 		BBD5F1548F5384BD76AF3A18 /* ProfileChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileChart.swift; sourceTree = "<group>"; };
 		BC72C5661FC14E96649E0024 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		BF03B4C24CEA4F45ADB4745B /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		C5253AFD0883CE88667185CD /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		E9973B16325ABA6B1C9D2DFC /* KilnApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KilnApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA5A0477C37A7A7561C547D9 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
@@ -78,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				BC72C5661FC14E96649E0024 /* Format.swift */,
+				BF03B4C24CEA4F45ADB4745B /* Logger.swift */,
 				60B02A2C3C99AC039E7A700F /* NotificationManager.swift */,
 			);
 			path = Support;
@@ -203,6 +206,7 @@
 			files = (
 				2777E1A7F43BD2127EC7ADDF /* ConnectionSetupView.swift in Sources */,
 				E82ECB12130484F2068CE5C3 /* ControllerAPI.swift in Sources */,
+				E66660A304714B3FA22E2667 /* Logger.swift in Sources */,
 				E0EB1728585D801962235222 /* DashboardView.swift in Sources */,
 				D73A58D999F79738D7C6F920 /* Format.swift in Sources */,
 				EF21036FD4704FFC9AF3A277 /* KeychainStore.swift in Sources */,

@@ -37,13 +37,13 @@ final class WebSocketService: @unchecked Sendable {
 
     /// Begin all four sockets against the given base URL.
     func connect(to base: URL) {
+        Task { @MainActor in Logger.shared.debug("WebSocket connect called for \(base)") }
         disconnect()
         stopping = false
         self.base = base
         startLoop(Self.statusPath, receive: { [weak self] in await self?.receiveStatus() })
         startLoop(Self.storagePath, receive: { [weak self] in await self?.receiveStorage() })
         startLoop(Self.configPath, receive: { [weak self] in await self?.receiveConfig() })
-        // /control is send-only; still open the socket so we can push commands.
         openSocket(Self.controlPath)
     }
 
@@ -130,6 +130,7 @@ final class WebSocketService: @unchecked Sendable {
     private func openSocket(_ path: String) -> URLSessionWebSocketTask? {
         guard let base else { return nil }
         let url = base.appendingPathComponent(path)
+        Task { @MainActor in Logger.shared.debug("Opening socket: \(url.path)") }
         let task = session.webSocketTask(with: url)
         lock.lock()
         tasks[path]?.cancel(with: .goingAway, reason: nil)

@@ -20,8 +20,10 @@ struct RootView: View {
             .animation(.easeInOut(duration: 0.25), value: client.phase)
         }
         .task {
-            // Auto-connect if we already have saved credentials.
-            if client.connection != nil && client.phase == .disconnected {
+            // Auto-connect only if we have a PERSISTED connection in Keychain.
+            // This prevents loops after "Forget Server" + bad IP attempts.
+            if ServerConnection.saved != nil && client.phase == .disconnected {
+                Logger.shared.debug("Auto-reconnecting to saved server")
                 await client.reconnect()
             }
         }

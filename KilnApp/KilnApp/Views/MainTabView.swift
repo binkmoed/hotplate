@@ -33,9 +33,16 @@ struct MainTabView: View {
                 .background(.thinMaterial)
         }
         .task {
-            while !client.isConnected {
+            // Guard: only retry a limited number of times so we don't spin
+            // forever if the server is genuinely unreachable.
+            var attempts = 0
+            while !client.isConnected && attempts < 10 {
                 await client.reconnect()
+                attempts += 1
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+            if !client.isConnected {
+                Logger.shared.error("Reconnect attempts exhausted")
             }
         }
     }

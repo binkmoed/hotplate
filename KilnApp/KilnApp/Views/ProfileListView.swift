@@ -34,7 +34,11 @@ struct ProfileListView: View {
                 ProfileEditorView(profile: profile)
             }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !client.isConnected {
+                        Label("Offline", systemImage: "wifi.slash")
+                            .foregroundStyle(.red)
+                    }
                     Button {
                         creating = true
                     } label: { Image(systemName: "plus") }
@@ -50,7 +54,11 @@ struct ProfileListView: View {
             }
             .overlay {
                 if client.profiles.isEmpty && !client.isConnected {
-                    ContentUnavailableView("Not Connected", systemImage: "wifi.slash")
+                    ContentUnavailableView(
+                        "Not Connected",
+                        systemImage: "wifi.slash",
+                        description: Text("Connect to your kiln controller to load profiles.")
+                    )
                 }
             }
         }

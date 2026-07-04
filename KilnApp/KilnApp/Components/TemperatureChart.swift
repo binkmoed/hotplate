@@ -21,7 +21,7 @@ struct TemperatureChart: View {
                         series: .value("Series", "schedule")
                     )
                     .interpolationMethod(.linear)
-                    .foregroundStyle(Color.gray.opacity(1.5))
+                    .foregroundStyle(Color.green.opacity(0.6))
                     .lineStyle(StrokeStyle(lineWidth: 1.5))
                 }
             }
@@ -36,6 +36,22 @@ struct TemperatureChart: View {
                 .interpolationMethod(.linear)
                 .foregroundStyle(Color.orange)
                 .lineStyle(StrokeStyle(lineWidth: 2.5))
+            }
+
+            // End-time label under the last schedule point.
+            if let schedule, let lastPoint = schedule.last {
+                PointMark(
+                    x: .value("Time", lastPoint.time / 60),
+                    y: .value("Temp", lastPoint.temp)
+                )
+                .foregroundStyle(.clear)
+                .annotation(position: .bottom, spacing: 2) {
+                    Text(formatEndtime(lastPoint.time))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                // Nudge left so the label doesn't run off the right edge.
+                .offset(x: -28)
             }
         }
         .chartXAxis {
@@ -57,22 +73,6 @@ struct TemperatureChart: View {
         .chartYScale(domain: 0...1250)
         .chartXScale(domain: 0...xUpper)
         .chartLegend(.hidden)
-        .overlay(alignment: .topTrailing) { legend.padding(8) }
-    }
-
-    private var legend: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Capsule().fill(Color.orange).frame(width: 14, height: 3)
-                Text("Actual").font(.caption2)
-            }
-            HStack(spacing: 4) {
-                Capsule().fill(Color.gray.opacity(0.5)).frame(width: 14, height: 3)
-                Text("Schedule").font(.caption2)
-            }
-        }
-        .padding(6)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
     }
 
     /// X-axis upper bound: profile duration + 30 minutes of padding, minimum 1.
@@ -86,5 +86,13 @@ struct TemperatureChart: View {
         let h = total / 60
         let m = total % 60
         return h > 0 ? "\(h)h\(m)m" : "\(m)m"
+    }
+
+    /// Format the profile end-time (seconds) as "Xh Ym".
+    private func formatEndtime(_ seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
     }
 }

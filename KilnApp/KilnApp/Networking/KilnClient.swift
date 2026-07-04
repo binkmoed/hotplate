@@ -55,6 +55,10 @@ final class KilnClient: WebSocketServiceDelegate {
     /// Temperature history seeded from the backlog log, appended each status frame.
     private(set) var history: [ChartSample] = []
 
+    /// Offset (seconds) applied to actual-temperature x-values when a firing is
+    /// started with skip-ahead. Keeps the orange line aligned with the schedule.
+    private(set) var firingStartOffset: Double = 0
+
     /// Profiles on the server.
     private(set) var profiles: [Profile] = []
 
@@ -86,27 +90,50 @@ final class KilnClient: WebSocketServiceDelegate {
 
     var restAPI: ControllerAPI? { rest }
 
+    // Guard against concurrent/repeated connect attempts causing loops.
+    private(set) var isConnecting = false
+
     // MARK: - Connection lifecycle
 
     /// Validate and persist a host/port, then connect all sockets.
     func connect(to newConnection: ServerConnection) async {
+        // Re-entry guard: prevent the flashing loop when multiple connect
+        // calls overlap (e.g. auto-reconnect + manual retry).
+        guard !isConnecting else {
+            Logger.shared.debug("connect() called while already connecting — ignoring")
+            return
+        }
+        isConnecting = true
+        defer { isConnecting = false }
+
+        Logger.shared.debug("Attempting to connect to \(newConnection.host):\(newConnection.port)")
         disconnect()
-        connection = newConnection
         phase = .connecting
         let rest = ControllerAPI(baseURL: newConnection.httpBase, session: session)
         self.rest = rest
         do {
+            Logger.shared.debug("Checking server health")
             _ = try await rest.checkHealth()
+            Logger.shared.info("Server health check passed")
         } catch {
-            phase = .failed(error.localizedDescription)
+            Logger.shared.error("Connection failed: \(error.localizedDescription)")
+            // Clear the stale REST client so nothing tries to use it.
+            self.rest = nil
+            // Use a clear, user-facing message.
+            phase = .failed("Cannot connect to server")
             return
         }
+        // Only persist the connection AFTER the health check passes —
+        // a failed attempt must not leave a stale host that triggers loops.
+        connection = newConnection
         newConnection.save()
         let service = WebSocketService(delegate: self, session: session)
         self.ws = service
+        Logger.shared.debug("Connecting WebSocket to \(newConnection.wsBase)")
         service.connect(to: newConnection.wsBase)
         Task { await self.refreshFullConfig() }
         phase = .connected
+        Logger.shared.info("Successfully connected to server")
     }
 
     /// Reconnect using the previously saved connection (if any).
@@ -116,6 +143,7 @@ final class KilnClient: WebSocketServiceDelegate {
     }
 
     func disconnect() {
+        Logger.shared.info("Disconnecting from server")
         ws?.disconnect()
         ws = nil
         phase = .disconnected
@@ -124,12 +152,16 @@ final class KilnClient: WebSocketServiceDelegate {
 
     /// Forget the saved connection entirely.
     func forgetConnection() {
+        Logger.shared.info("Forgetting server connection")
         disconnect()
         ServerConnection.clear()
         connection = nil
+        rest = nil
+        isConnecting = false
         status = nil
         activeProfile = nil
         history.removeAll()
+        firingStartOffset = 0
         profiles.removeAll()
         fullConfig = nil
     }
@@ -138,6 +170,8 @@ final class KilnClient: WebSocketServiceDelegate {
 
     func run(profile name: String, startAt: Double? = nil) async {
         guard let rest else { return }
+        firingStartOffset = startAt ?? 0
+        history.removeAll()
         do {
             try await rest.run(profile: name, startAt: startAt)
             lastCommandError = nil
@@ -197,10 +231,12 @@ final class KilnClient: WebSocketServiceDelegate {
         Task { @MainActor in
             self.activeProfile = message.profile
             // Seed the live chart from the backlog log, if any.
+            // Apply the firing-start offset so actual lines up with schedule.
             if let log = message.log, !log.isEmpty {
+                let offset = self.firingStartOffset
                 self.history = log.compactMap { s in
                     guard let t = s.runtime, let temp = s.temperature else { return nil }
-                    return ChartSample(runtime: t, temperature: temp, target: s.target ?? 0)
+                    return ChartSample(runtime: t + offset, temperature: temp, target: s.target ?? 0)
                 }
                 self.status = log.last
             } else {
@@ -211,10 +247,25 @@ final class KilnClient: WebSocketServiceDelegate {
 
     nonisolated func statusSocket(didReceiveStatus status: KilnStatus) {
         Task { @MainActor in
+            let wasActive = self.status?.state == .running || self.status?.state == .paused
             self.status = status
-            if let t = status.runtime, let temp = status.temperature {
+
+            // When the kiln returns to idle (e.g. after Stop), clear history
+            // and reset the offset so no stale line is drawn.
+            if status.state == .idle {
+                if wasActive {
+                    self.history.removeAll()
+                }
+                self.firingStartOffset = 0
+                self.handleStateNotifications(status.state)
+                return
+            }
+
+            // Only accumulate chart samples while running or paused.
+            if status.state == .running || status.state == .paused,
+               let t = status.runtime, let temp = status.temperature {
                 self.history.append(ChartSample(
-                    runtime: t,
+                    runtime: t + self.firingStartOffset,
                     temperature: temp,
                     target: status.target ?? 0
                 ))

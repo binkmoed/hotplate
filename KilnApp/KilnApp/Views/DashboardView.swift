@@ -12,7 +12,11 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     statusCard
-                    profilePicker
+                    HStack {
+                        profilePicker
+                        Spacer()
+                        chartLegend
+                    }
                     TemperatureChart(
                         history: client.history,
                         total: client.displayProfile?.totalDuration,
@@ -27,7 +31,11 @@ struct DashboardView: View {
             .navigationTitle(client.displayProfile?.name ?? "Kiln")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !client.isConnected {
+                        Label("Offline", systemImage: "wifi.slash")
+                            .foregroundStyle(.red)
+                    }
                     Image(systemName: stateIcon)
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(stateColor)
@@ -36,12 +44,9 @@ struct DashboardView: View {
             .sheet(isPresented: $showStartSheet) {
                 StartFiringSheet()
                     .presentationDetents([.medium])
+                    .presentationBackground(.regularMaterial)
             }
-            .confirmationDialog(
-                "Stop firing?",
-                isPresented: $showStopConfirmation,
-                titleVisibility: .visible
-            ) {
+            .alert("Stop firing?", isPresented: $showStopConfirmation) {
                 Button("Stop", role: .destructive) {
                     Task { await client.stop() }
                 }
@@ -84,6 +89,21 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var chartLegend: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Capsule().fill(Color.orange).frame(width: 14, height: 3)
+                Text("Actual").font(.caption2)
+            }
+            HStack(spacing: 4) {
+                Capsule().fill(Color.green.opacity(0.6)).frame(width: 14, height: 3)
+                Text("Schedule").font(.caption2)
+            }
+        }
+        .padding(6)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 6))
+    }
+
     private var statusCard: some View {
         let status = client.status
         let temp = status?.temperature ?? 0
@@ -93,24 +113,22 @@ struct DashboardView: View {
             runtime: status?.runtime, total: status?.totaltime
         )
         return VStack(spacing: 16) {
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text("\(Int(temp.rounded()))")
-                    .font(.system(size: 72, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                Text(units.lowercased() == "f" ? "°F" : "°C")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                VStack(alignment: .trailing) {
-                    Text("TARGET")
-                        .font(.caption2).bold()
+            // Temperature centred, with target underneath.
+            VStack(spacing: 4) {
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text("\(Int(temp.rounded()))")
+                        .font(.system(size: 72, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text(units.lowercased() == "f" ? "°F" : "°C")
+                        .font(.title2)
                         .foregroundStyle(.secondary)
-                    Text("\(Int(target.rounded()))°")
-                        .font(.title2.monospacedDigit())
-                        .foregroundStyle(.orange)
                 }
+                Text("TARGET \(Int(target.rounded()))°")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.orange)
             }
+            .frame(maxWidth: .infinity)
             VStack(spacing: 6) {
                 ProgressView(value: progress)
                     .tint(.orange)
@@ -279,6 +297,7 @@ struct StartFiringSheet: View {
             }
             .onAppear {
                 if selectedProfile == nil { selectedProfile = client.profiles.first }
+                startAtMinutes = 0
             }
         }
     }

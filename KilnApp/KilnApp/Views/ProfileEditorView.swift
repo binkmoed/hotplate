@@ -9,32 +9,58 @@ struct ProfileEditorView: View {
 
     @State private var profile: Profile
     @State private var originalName: String
-    @State private var units: String
+    @State private var originalData: [Profile.Point]
+    @State private var originalUnits: String
     @State private var isSaving = false
     @State private var saveMessage: String?
     @State private var showReplaceConfirm = false
-    @State private var pendingForce = false
 
     private let isNew: Bool
 
     init(profile: Profile, isNew: Bool = false) {
         _profile = State(initialValue: profile)
         _originalName = State(initialValue: profile.name)
-        _units = State(initialValue: profile.tempUnits)
+        _originalData = State(initialValue: profile.data)
+        _originalUnits = State(initialValue: profile.tempUnits)
         self.isNew = isNew
+    }
+
+    /// True when the user has edited points, name, or units since last save.
+    private var hasUnsavedChanges: Bool {
+        profile.name != originalName
+            || profile.tempUnits != originalUnits
+            || profile.data != originalData
     }
 
     var body: some View {
         Form {
+            // Saved-file status at the top.
+            Section {
+                if isSaving {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text("Saving…")
+                    }
+                } else if let saveMessage {
+                    Label(saveMessage, systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                } else if hasUnsavedChanges {
+                    Label("Unsaved changes", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                } else {
+                    Label("All changes saved", systemImage: "checkmark.circle")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Profile") {
                 TextField("Name", text: $profile.name)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                Picker("Units", selection: $units) {
+                Picker("Units", selection: $profile.tempUnits) {
                     Text("Celsius").tag("c")
                     Text("Fahrenheit").tag("f")
                 }
-                .onChange(of: units) { _, new in profile.tempUnits = new }
             }
 
             Section {
@@ -61,13 +87,6 @@ struct ProfileEditorView: View {
             } header: {
                 Text("Summary")
             }
-
-            if let saveMessage {
-                Section {
-                    Label(saveMessage, systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                }
-            }
         }
         .navigationTitle(isNew ? "New Profile" : profile.name)
         .navigationBarTitleDisplayMode(.inline)
@@ -84,7 +103,7 @@ struct ProfileEditorView: View {
                 } label: {
                     if isSaving { ProgressView() } else { Text("Save") }
                 }
-                .disabled(profile.name.isEmpty || profile.data.count < 2 || isSaving)
+                .disabled(profile.name.isEmpty || profile.data.count < 2 || isSaving || !hasUnsavedChanges)
             }
         }
         .confirmationDialog(
@@ -126,10 +145,12 @@ struct ProfileEditorView: View {
         isSaving = false
         if client.profiles.contains(where: { $0.name == toSave.name }) {
             saveMessage = "Saved."
+            // Update the baseline so hasUnsavedChanges resets to false.
+            originalName = toSave.name
+            originalUnits = profile.tempUnits
+            originalData = profile.data
             if isNew {
                 dismiss()
-            } else {
-                originalName = toSave.name
             }
         } else if didWrite {
             saveMessage = "Sent. Verify in the list."

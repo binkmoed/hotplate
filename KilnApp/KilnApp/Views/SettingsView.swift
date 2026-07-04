@@ -59,7 +59,7 @@ struct SettingsView: View {
                 Button("Reconnect", systemImage: "arrow.clockwise") {
                     Task { await client.reconnect() }
                 }
-                Button("Forget Server", role: .destructive) {
+                Button("Disconnect", role: .destructive) {
                     client.forgetConnection()
                 }
             }
