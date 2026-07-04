@@ -4,3 +4,5 @@
 - Add passcode to IOS app to prevent unauthorized access ( prevent children from activationg the kiln ).
 - feasibility study for implementation on esp32 m5stack core instead of Raspberry pi.
 - when starting a firing schedule take the ambient temperature as the starting point on the graph.
+- Various bug fixes.
+- profile save bug.
