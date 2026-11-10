@@ -358,7 +358,16 @@ final class KilnClient: WebSocketServiceDelegate {
                 if let sessions = try? await rest.getSessions(),
                    let latest = sessions.first,
                    let started = latest.started,
-                   started > transition.timeIntervalSince1970 - 5 {
+                   let runtime = latest.runtime {
+                    // The newest session must be the one that *just* ended:
+                    // its end time (started + runtime) should match the
+                    // active→idle transition. (`started` alone is when the
+                    // firing began, which is always long before.)
+                    let ended = started + runtime
+                    guard ended > transition.timeIntervalSince1970 - 30 else {
+                        try? await Task.sleep(for: .seconds(2))
+                        continue
+                    }
                     if latest.outcome == "completed" {
                         self.completedFiring = latest
                         return
