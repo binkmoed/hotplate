@@ -1,7 +1,7 @@
 {
   "hardware": {
     "spi_bus": 0,
-    "spi_device": 0,
+    "spi_device": 1,
     "sensor_type": "MAX31856",
     "thermocouple_type_max31856": "K",
     "thermocouple_type_max31855": "K",
@@ -32,7 +32,7 @@
     "temp_scale": "c",
     "time_scale_slope": "h",
     "time_scale_profile": "m",
-    "kwh_rate": 0.25,
+    "kwh_rate": 0.27,
     "currency_type": "€"
   },
   "restart": {
