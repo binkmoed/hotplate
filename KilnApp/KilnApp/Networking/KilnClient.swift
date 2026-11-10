@@ -377,6 +377,7 @@ final class KilnClient: WebSocketServiceDelegate {
                         continue
                     }
                     if latest.outcome == "completed" {
+                        NotificationManager.shared.hapticAndSound(kind: .completed)
                         self.completedFiring = latest
                         return
                     }
@@ -385,6 +386,7 @@ final class KilnClient: WebSocketServiceDelegate {
                         if let log = try? await rest.getSessionLog(id: latest.id) {
                             reason = log.events.last(where: { $0.name == "abort" })?.detail
                         }
+                        NotificationManager.shared.hapticAndSound(kind: .aborted)
                         self.abortReason = reason
                         self.abortedFiring = latest
                         return

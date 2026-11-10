@@ -1,5 +1,7 @@
 import Foundation
 import UserNotifications
+import UIKit
+import AudioToolbox
 
 /// Wraps `UNUserNotificationCenter` for safety/completion alerts. No-op until authorized.
 final class NotificationManager: @unchecked Sendable {
@@ -59,6 +61,26 @@ final class NotificationManager: @unchecked Sendable {
         )
         center.add(req)
     }
+
+    // MARK: - In-app haptics + sound
+
+    /// Haptic buzz + audible ping for the in-app completion/abort alerts
+    /// (SwiftUI alerts are silent; the notification banner only shows when
+    /// the app is backgrounded).
+    func hapticAndSound(kind: FiringAlertKind) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        switch kind {
+        case .completed:
+            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1057)   // bright timer ping
+        case .aborted:
+            generator.notificationOccurred(.error)
+            AudioServicesPlaySystemSound(1053)   // low error tone
+        }
+    }
+
+    enum FiringAlertKind { case completed, aborted }
 
     private func profileText(_ s: KilnStatus) -> String {
         let name = s.profile ?? "Profile"
