@@ -27,11 +27,13 @@
 		EC97F526D88078E6FCF0F4F8 /* TemperatureChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 714314C84E4C40A56ABF8657 /* TemperatureChart.swift */; };
 		EF21036FD4704FFC9AF3A277 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F7FEB8CF6C31691F905005 /* KeychainStore.swift */; };
 		F3A9E539A231A5D6F508292F /* ProfileListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF8F9AEF3A54A85F5D62E6E6 /* ProfileListView.swift */; };
+		F5D5ABCFDDEC47EF178657B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0C3E1AF41847C030A52647D3 /* Assets.xcassets */; };
 		F7CAFB77C0A5AE8C28D2ABCB /* KilnClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26407DB906C14E4F05299898 /* KilnClient.swift */; };
 		FF2F6EEBEA98AFA37EAC41A1 /* Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA5A0477C37A7A7561C547D9 /* Profile.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C3E1AF41847C030A52647D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		26407DB906C14E4F05299898 /* KilnClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnClient.swift; sourceTree = "<group>"; };
 		2FEED8C9C341ACE6A456A5C5 /* KilnStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnStatus.swift; sourceTree = "<group>"; };
 		49D5D5675F9E75344E9B4EB4 /* WebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketService.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				CDBD5EFB6F1762E321975A34 /* Networking */,
 				387E86C3AD5C8F977B1C8594 /* Support */,
 				7ACB8AF540E3C41CA921836C /* Views */,
+				0C3E1AF41847C030A52647D3 /* Assets.xcassets */,
 			);
 			path = KilnApp;
 			sourceTree = "<group>";
@@ -159,6 +162,7 @@
 			buildConfigurationList = 0827A5A4CFF38112762D1905 /* Build configuration list for PBXNativeTarget "KilnApp" */;
 			buildPhases = (
 				9FE1B0A49ADBA6747FE96071 /* Sources */,
+				9620E50396E8C62FDC280578 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -204,6 +208,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		9620E50396E8C62FDC280578 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F5D5ABCFDDEC47EF178657B7 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		9FE1B0A49ADBA6747FE96071 /* Sources */ = {
