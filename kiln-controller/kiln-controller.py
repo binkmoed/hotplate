@@ -94,7 +94,7 @@ def handle_api_command():
             except (ValueError, TypeError):
                 return json.dumps({'success': False, 'error': 'Invalid startat value'})
 
-            return self.run_profile(profile_name, startat, allow_seek)
+            return controller.run_profile(profile_name, startat, allow_seek)
 
         elif cmd == 'pause':
             return controller.pause()
