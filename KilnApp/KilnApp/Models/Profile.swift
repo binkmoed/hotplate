@@ -10,6 +10,17 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
 
     var id: String { name }
 
+    /// Mirror of the server's `get_start_from_temperature`: the time of the
+    /// first profile point at or above `currentTemp`, or 0 if the kiln is
+    /// already hotter than the entire profile. Used to prefill the
+    /// "Start at" slider with the seek position.
+    func seekSeconds(forCurrentTemp currentTemp: Double) -> Double {
+        for point in data where point.temp >= currentTemp {
+            return point.time
+        }
+        return 0
+    }
+
     enum CodingKeys: String, CodingKey {
         case type, name
         case tempUnits = "temp_units"

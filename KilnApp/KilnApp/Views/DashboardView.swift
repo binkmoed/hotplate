@@ -329,10 +329,14 @@ struct StartFiringSheet: View {
                 Section {
                     VStack(alignment: .leading) {
                         Text("Start at: \(Int(startAtMinutes)) min")
-                        Slider(value: $startAtMinutes, in: 0...300, step: 5)
+                        Slider(value: $startAtMinutes, in: 0...maxMinutes, step: 1)
+                        if startAtMinutes > suggestedMinutes {
+                            Text("You are skipping ahead of the current temperature.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
                     }
                 } header: { Text("Skip-ahead") } footer: {
-                    Text("Optional: begin the profile this many minutes in. Leave at 0 for a normal start.")
+                    Text("Prefilled with where the schedule matches the current kiln temperature (seek). Drag back to 0 to start from the beginning.")
                 }
                 if let error = client.lastCommandError {
                     Section { Text(error).foregroundStyle(.red) }
@@ -355,12 +359,31 @@ struct StartFiringSheet: View {
             }
             .onAppear {
                 if selectedProfile == nil { selectedProfile = client.profiles.first }
-                startAtMinutes = 0
+                prefillSeek()
             }
+            .onChange(of: selectedProfile) { _, _ in prefillSeek() }
             .onDisappear {
                 startAtMinutes = 0
             }
         }
+    }
+
+    private var maxMinutes: Double {
+        max((selectedProfile?.data.last?.time ?? 0) / 60, 1)
+    }
+
+    /// Where the schedule first reaches the current kiln temperature —
+    /// same rule the server used to apply silently. Prefills the slider so
+    /// what you see is what will happen; dragging back to 0 forces a cold
+    /// start because we now send an explicit startat with seek disabled.
+    private var suggestedMinutes: Double {
+        guard let profile = selectedProfile,
+              let currentTemp = client.status?.temperature else { return 0 }
+        return profile.seekSeconds(forCurrentTemp: currentTemp) / 60
+    }
+
+    private func prefillSeek() {
+        startAtMinutes = suggestedMinutes
     }
 
     private func start() async {

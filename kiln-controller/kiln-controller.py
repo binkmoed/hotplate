@@ -80,6 +80,11 @@ def handle_api_command():
         if cmd == 'run':
             profile_name = body.get('profile')
             startat = body.get('startat', 0)
+            # seek=true (default, legacy): server may jump the schedule to
+            # the current kiln temperature. Clients that pre-compute the
+            # seek offset themselves (and show it in the UI) pass seek=false
+            # so the schedule starts exactly at `startat`.
+            allow_seek = body.get('seek', True)
 
             if not profile_name:
                 return json.dumps({'success': False, 'error': 'Missing profile name'})
@@ -89,7 +94,7 @@ def handle_api_command():
             except (ValueError, TypeError):
                 return json.dumps({'success': False, 'error': 'Invalid startat value'})
 
-            return controller.run_profile(profile_name, startat)
+            return self.run_profile(profile_name, startat, allow_seek)
 
         elif cmd == 'pause':
             return controller.pause()
@@ -520,7 +525,7 @@ class KilnController:
 
     # --- Command helpers (called from REST route handlers) ---
 
-    def run_profile(self, profile_name, startat=0):
+    def run_profile(self, profile_name, startat=0, allow_seek=True):
         try:
             profile_path = os.path.join(config.profiles_dir, f"{profile_name}.json")
             if not os.path.exists(profile_path):
@@ -533,11 +538,12 @@ class KilnController:
             if not self.hardware.enable_safety_relay():
                 return json.dumps({'success': False, 'error': 'Cannot start: lid is open'})
 
-            self.oven.run_profile(profile, startat=startat)
+            self.oven.run_profile(profile, startat=startat, allow_seek=allow_seek)
             self.watcher.record(profile)
             self.alert_manager.send_alert(
                 "FIRING_STARTED",
-                f"Started firing profile '{profile_name}'",
+                f"Started firing profile '{profile_name}'"
+                + (f" from {int(startat)}s" if startat else ""),
                 "info"
             )
             return json.dumps({'success': True})

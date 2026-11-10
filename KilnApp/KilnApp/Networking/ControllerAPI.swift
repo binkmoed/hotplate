@@ -55,9 +55,10 @@ struct ControllerAPI: Sendable {
 
     /// `POST /api {"cmd":"run","profile":"<name>","startat":<sec>}`
     @discardableResult
-    func run(profile: String, startAt: Double? = nil) async throws -> Bool {
+    func run(profile: String, startAt: Double? = nil, seek: Bool = true) async throws -> Bool {
         var body: [String: Any] = ["cmd": "run", "profile": profile]
         if let startAt { body["startat"] = startAt }
+        if !seek { body["seek"] = false }   // explicit offset: honour it exactly
         return try await sendCommand(body)
     }
 

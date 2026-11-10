@@ -187,7 +187,7 @@ final class KilnClient: WebSocketServiceDelegate {
         status = nil
         userStoppedFiring = false
         do {
-            try await rest.run(profile: name, startAt: startAt)
+            try await rest.run(profile: name, startAt: startAt, seek: false)
             lastCommandError = nil
         } catch {
             lastCommandError = error.localizedDescription
