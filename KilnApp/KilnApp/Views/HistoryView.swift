@@ -241,18 +241,25 @@ struct SessionDetailView: View {
 
     private func iconName(_ name: String) -> String {
         switch name {
-        case "run": return "play.circle"
-        case "resume": return "play.circle"
+        case "run", "resume": return "play.circle"
         case "pause": return "pause.circle"
+        case "completed": return "checkmark.circle"
+        case "abort": return "xmark.octagon"
+        case "heating_stalled": return "exclamationmark.triangle"
+        case "sensor_retry": return "thermometer.medium"
         default: return "exclamationmark.triangle"
         }
     }
 
     /// Timeline entries are muted so they don't read as tappable controls
-    /// (e.g. 'resume' is a historical record, not a button).
+    /// (e.g. 'resume' is a historical record, not a button). Real problems
+    /// (abort, heating stall) keep attention-grabbing colours.
     private func iconColor(_ name: String) -> Color {
         switch name {
-        case "run", "resume", "pause": return .secondary
+        case "run", "resume", "pause", "sensor_retry": return .secondary
+        case "completed": return .green
+        case "abort": return .red
+        case "heating_stalled": return .orange
         default: return .orange
         }
     }
