@@ -245,6 +245,13 @@ class Config:
         return self.get("pid", "max_ssr_on_time", default=6.0)
 
     @property
+    def stall_window(self):
+        """Seconds of saturated power (>=90% duty) with less than 2 degrees
+        of temperature rise before a heating-stall warning is raised
+        (suspect element / SSR / thermocouple). 0 disables the detection."""
+        return self.get("pid", "stall_window", default=600.0)
+
+    @property
     def duty_cycle(self):
         return self.get("pid", "duty_cycle", default=3.0)
 

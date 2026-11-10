@@ -194,9 +194,39 @@ class Oven(threading.Thread):
         # Outcome of the most recent firing session ('completed'/'aborted').
         # Set at the moment of transition so the watcher doesn't have to
         # guess from the last broadcast sample.
+        # Outcome of the most recent firing session ('completed'/'aborted').
+        # Set at the moment of transition so the watcher doesn't have to
+        # guess from the last broadcast sample.
         self.session_outcome = None
 
+        # Session-log events raised by the oven thread (drained by the
+        # watcher each cycle): (name, detail) tuples such as
+        # ('abort', 'lid opened') or ('heating_stalled', '...').
+        self._session_events = []
+        self._session_events_lock = threading.Lock()
+
+        # Heating-stall detection state (see _check_heating_stall).
+        self._stall_start = None          # (time, temp) when saturation began
+        self._stall_alerted = False
+        self._last_retry_event = 0.0
+
         self.lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # Session events (queued here, written to the log by the watcher)
+    # ------------------------------------------------------------------
+
+    def raise_session_event(self, name, detail=""):
+        """Queue an event for the session log (thread-safe)."""
+        with self._session_events_lock:
+            self._session_events.append((name, detail))
+
+    def drain_session_events(self):
+        """Return and clear queued session events (called by the watcher)."""
+        with self._session_events_lock:
+            events = self._session_events
+            self._session_events = []
+            return events
 
     # ------------------------------------------------------------------
     # Thread entry point
@@ -253,6 +283,12 @@ class Oven(threading.Thread):
             # Use last known temperature as fallback
             current_temp = self.current_temp
             consecutive_failures += 1
+            # Record transient read failures in the session log (throttled
+            # to one per minute) so flakiness is visible before it aborts.
+            if consecutive_failures < config.max_consecutive_read_failures \
+                    and time.time() - self._last_retry_event > 60:
+                self._last_retry_event = time.time()
+                self.raise_session_event('sensor_retry', str(e))
         self._consecutive_read_failures = consecutive_failures
 
         with self.lock:
@@ -265,7 +301,7 @@ class Oven(threading.Thread):
             print("Aborting: temperature sensor failed repeatedly")
             if self.alert_manager:
                 self.alert_manager.alert_thermocouple_error(1.0)
-            self.abort_run()
+            self.abort_run('temperature sensor failed repeatedly')
             return
 
         # --- Phase 4: Safety (with fresh temperature) ---
@@ -286,6 +322,8 @@ class Oven(threading.Thread):
         # --- Phase 7: PID ---
             pid_output = self.pid.compute(self.target_temp, current_temp)
 
+            self._check_heating_stall(pid_output)
+
             # Soft landing: when close to the target, cap the duty cycle so
             # thermal momentum can't carry a low-mass load (hotplate) past
             # the setpoint. Disabled when approach_window is 0.
@@ -305,7 +343,7 @@ class Oven(threading.Thread):
                 # hardware layer has already cut power and dropped the
                 # relay — bring the oven state machine in line now
                 # instead of waiting for the next control cycle.
-                self.abort_run()
+                self.abort_run('safety interlock opened while heating (lid?)')
                 return
         else:
             self.heat = 0.0
@@ -348,11 +386,42 @@ class Oven(threading.Thread):
         self.last_temp_for_heat_rate = self.current_temp
         self.last_time_for_heat_rate = now
 
+    def _check_heating_stall(self, pid_output):
+        """Warn when the kiln can't heat despite full power.
+
+        If the PID is saturated (>=90% duty) for stall_window seconds and the
+        temperature hasn't risen more than 2 degrees over that window (plateau
+        or actively cooling), suspect the elements, SSR or thermocouple.
+        Warning only — never aborts — a big cold load can look similar."""
+        if config.stall_window <= 0 or pid_output < 0.9:
+            self._stall_start = None
+            return
+        now = time.time()
+        if self._stall_start is None:
+            self._stall_start = (now, self.current_temp)
+            return
+        started_at, start_temp = self._stall_start
+        if now - started_at < config.stall_window or self._stall_alerted:
+            return
+        if self.current_temp < start_temp + 2.0:
+            elapsed = int(now - started_at)
+            self._stall_alerted = True
+            detail = (f"full power for {elapsed}s but temperature rose only "
+                      f"{self.current_temp - start_temp:.1f}° — element, SSR or "
+                      f"thermocouple suspect")
+            self.raise_session_event('heating_stalled', detail)
+            if self.alert_manager:
+                self.alert_manager.send_alert(
+                    'HEATING_STALLED',
+                    f"Kiln not heating: {detail}", 'warning')
+
     def _complete_firing(self):
         profile_name = self.profile.name if self.profile else "Unknown"
         duration = self.runtime
         cost = self.cost
         self.session_outcome = 'completed'
+        self.raise_session_event(
+            'completed', f"profile finished after {duration:.0f}s, cost {cost:.2f}")
         self.abort_run()
         if self.alert_manager:
             self.alert_manager.alert_firing_complete(profile_name, duration, cost)
@@ -373,6 +442,8 @@ class Oven(threading.Thread):
             self.cost = 0.0
             self.catching_up = False
             self.pid.reset()
+            self._stall_start = None
+            self._stall_alerted = False
 
             if allow_seek and config.seek_start:
                 current_temp = self.temp_sensor.get_temperature()
@@ -399,11 +470,13 @@ class Oven(threading.Thread):
 
     def stop(self):
         with self.lock:
-            self.abort_run()
+            self.abort_run('stopped by user')
 
-    def abort_run(self):
+    def abort_run(self, reason=None):
         if self.session_outcome is None:
             self.session_outcome = 'aborted'
+        if reason and self.session_outcome == 'aborted':
+            self.raise_session_event('abort', reason)
         self.state = 'IDLE'
         self.profile = None
         self.start_time = None
@@ -464,7 +537,7 @@ class Oven(threading.Thread):
         if self.hardware.is_lid_open():
             if self.alert_manager:
                 self.alert_manager.alert_lid_opened()
-            self.abort_run()
+            self.abort_run('lid opened during firing')
             return
 
         # Over-temperature (convert limit to current display scale)
@@ -479,7 +552,8 @@ class Oven(threading.Thread):
                 self.alert_manager.alert_temperature_exceeded(
                     self.current_temp, temp_limit
                 )
-            self.abort_run()
+            self.abort_run(
+                f"over-temperature: {self.current_temp:.0f}° ≥ {temp_limit:.0f}°")
             return
 
         # Thermocouple error rate
@@ -487,7 +561,7 @@ class Oven(threading.Thread):
         if error_rate > config.max_tc_error_rate and not config.ignore_tc_too_many_errors:
             if self.alert_manager:
                 self.alert_manager.alert_thermocouple_error(error_rate)
-            self.abort_run()
+            self.abort_run(f"thermocouple error rate {error_rate:.0%}")
             return
 
     # ------------------------------------------------------------------
@@ -540,4 +614,4 @@ class Oven(threading.Thread):
 
     def shutdown(self):
         self.running = False
-        self.abort_run()
+        self.abort_run('controller shutdown')

@@ -83,6 +83,10 @@ class OvenWatcher(threading.Thread):
                 self.backlog.append(state)
                 state_json = json.dumps(state)
                 if self.session_logger is not None:
+                    # Write any events raised by the oven thread since the
+                    # last cycle (abort reasons, sensor retries, stalls…).
+                    for name, detail in self.oven.drain_session_events():
+                        self.session_logger.event(name, detail)
                     self.session_logger.log(state)
                     self._last_sample = state
                     self._record_session_event(state.get('state'))
