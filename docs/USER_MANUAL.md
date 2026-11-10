@@ -56,11 +56,17 @@ service; the phone must be on the same network as the Pi.
 
 ### How temperature is measured (and why it matters)
 
-The controller **never reads the thermocouple while the elements are
-energised**. Each 3-second duty cycle follows an EMI-safe sequence:
+The controller **NEVER reads the thermocouple while the elements are
+energised**. 
 
-1. SSR off → 2. wait 0.5 s settle time → 3. read temperature →
-4. PID computes → 5. SSR on for its slice → 6. quiet sleep.
+Each 3-second duty cycle follows an EMI-safe sequence:
+
+1. SSR off →
+2. 2. wait 0.5 s settle time →
+3. read temperature →
+4. PID computes →
+5. SSR on for its slice →
+6. quiet sleep.
 
 The settle time is even reserved out of the SSR's maximum on-time, so a
 long heating burst can never crowd out the next read.
