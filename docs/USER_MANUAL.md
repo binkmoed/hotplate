@@ -62,7 +62,7 @@ energised**.
 Each 3-second duty cycle follows an EMI-safe sequence:
 
 1. SSR off →
-2. 2. wait 0.5 s settle time →
+2. wait 0.5 s settle time →
 3. read temperature →
 4. PID computes →
 5. SSR on for its slice →
