@@ -12,7 +12,25 @@ struct ProfileChart: View {
     @State private var lastTouch: CGPoint?
     @State private var deletionFlash: Int?
 
-    private let yMaxTemp: Double = 1250
+    /// Hard ceiling for drag/numeric edits.
+    private let yMaxTemp: Double = 1500
+
+    /// Auto-scaled Y upper bound: highest point + 25% headroom so there is
+    /// always room to drag a point upward, floored at 100°, capped at the
+    /// hard ceiling.
+    private var yUpper: Double {
+        let peak = points.map(\.temp).max() ?? 0
+        return min(yMaxTemp, max(100, Double(Int(peak * 1.25))))
+    }
+
+    /// A "nice" stride that yields roughly 4–8 labelled gridlines.
+    private var yStride: Double {
+        let target = yUpper / 6
+        for step in [10.0, 25.0, 50.0, 100.0, 200.0, 250.0, 500.0] {
+            if step >= target { return step }
+        }
+        return 500
+    }
 
     /// Domain upper bound: one hour past the last point's time (minimum 1 to avoid an empty range).
     private var xMaxMinutes: Double {
@@ -40,7 +58,7 @@ struct ProfileChart: View {
             }
         }
         .chartXScale(domain: 0...xMaxMinutes)
-        .chartYScale(domain: 0...yMaxTemp)
+        .chartYScale(domain: 0...yUpper)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 6)) { v in
                 AxisGridLine()
@@ -48,9 +66,9 @@ struct ProfileChart: View {
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading, values: .stride(by: 50)) { v in
+            AxisMarks(position: .leading, values: Array(stride(from: 0.0, through: yUpper, by: yStride))) { v in
                 AxisGridLine()
-                if let t = v.as(Double.self), Int(t.rounded()) % 250 == 0 {
+                if let t = v.as(Double.self) {
                     AxisValueLabel { Text("\(Int(t))°") }
                 }
             }
