@@ -58,7 +58,9 @@ class OvenWatcher(threading.Thread):
         prev, cur = self._last_state, state
         if prev != cur:
             if cur == 'RUNNING':
-                self.session_logger.event('run' if prev is None else 'resume')
+                # From PAUSED it's a resume; from IDLE (or a fresh watcher
+                # that hasn't seen a state yet) it's the start of a firing.
+                self.session_logger.event('resume' if prev == 'PAUSED' else 'run')
             elif cur == 'PAUSED':
                 self.session_logger.event('pause')
             elif prev in ('RUNNING', 'PAUSED'):

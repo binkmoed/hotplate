@@ -169,6 +169,32 @@ check("completed event written to session log", 'completed' in names, f"events={
 check("end outcome completed", outcome == ['completed'], f"outcome={outcome}")
 check("no IDLE sample logged after completion", no_idle)
 
+print("\n--- Fresh start from IDLE logs 'run', not 'resume' ---")
+tmpdir2 = tempfile.mkdtemp()
+sl2 = SessionLogger(tmpdir2)
+hw7, sn7 = FakeHardware(), FakeSensor(100.0)
+ov7 = Oven(sn7, hw7)
+w2 = OvenWatcher(ov7, session_logger=sl2)
+# Watcher has been running and already saw the oven IDLE *before* the firing
+# started (the normal case; 'run' was only emitted when prev was None).
+w2._last_state = 'IDLE'
+sl2.start(Profile("Lead", [(0, 100), (600, 200)]))
+ov7.state = 'RUNNING'
+ov7.profile = Profile("Lead", [(0, 100), (600, 200)])
+ov7.totaltime = 600
+w2._record_session_event('RUNNING')
+# Then a pause/resume pair to confirm both names still work.
+w2._record_session_event('PAUSED')
+w2._record_session_event('RUNNING')
+names2 = []
+for f in os.listdir(tmpdir2):
+    for l in open(os.path.join(tmpdir2, f)):
+        rec = json.loads(l)
+        if rec.get('type') == 'event':
+            names2.append(rec['name'])
+check("IDLE->RUNNING logs 'run'", names2[:1] == ['run'], f"events={names2}")
+check("PAUSED->RUNNING logs 'resume'", names2 == ['run', 'pause', 'resume'], f"events={names2}")
+
 fails = [n for n, ok, _ in PASS if not ok]
 print(f"\n{len(PASS)-len(fails)}/{len(PASS)} passed")
 sys.exit(1 if fails else 0)
