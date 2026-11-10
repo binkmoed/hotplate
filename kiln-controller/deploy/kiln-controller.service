@@ -1,0 +1,29 @@
+# Kiln Controller systemd unit
+#
+# Install on the Pi:
+#   sudo cp kiln-controller.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now kiln-controller
+#
+# Restart=always matters for safety: a crashed controller is restarted and
+# GPIO setup drives both the SSR and safety-relay pins LOW at init.
+
+[Unit]
+Description=Kiln Controller Service
+After=network.target
+
+[Service]
+Type=simple
+User=oven
+WorkingDirectory=/home/oven/kiln-controller
+Environment=PATH=/home/oven/kiln-controller/venv/bin
+ExecStart=/home/oven/kiln-controller/venv/bin/python3 kiln-controller.py
+Restart=always
+RestartSec=10
+# Kill any lingering process group so the SSR can never be left driven.
+KillMode=control-group
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
