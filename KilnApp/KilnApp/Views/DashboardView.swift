@@ -36,9 +36,13 @@ struct DashboardView: View {
                         Label("Offline", systemImage: "wifi.slash")
                             .foregroundStyle(.red)
                     }
-                    Image(systemName: stateIcon)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(stateColor)
+                    if client.currentState == .running {
+                        FlickeringFlame()
+                    } else {
+                        Image(systemName: stateIcon)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(stateColor)
+                    }
                 }
             }
             .sheet(isPresented: $showStartSheet) {
@@ -266,6 +270,24 @@ struct DashboardView: View {
         if state == .running, let out = pidOut, out > 0.01 { return "ON" }
         guard let heat else { return "OFF" }
         return heat >= 0.5 ? "ON" : "OFF"
+    }
+}
+
+/// Toolbar flame that gently flickers while a firing program is running.
+struct FlickeringFlame: View {
+    @State private var flicker = false
+
+    var body: some View {
+        Image(systemName: "flame.fill")
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.orange)
+            .scaleEffect(flicker ? 1.18 : 0.88)
+            .opacity(flicker ? 1.0 : 0.7)
+            .animation(
+                .easeInOut(duration: 0.5).repeatForever(autoreverses: true),
+                value: flicker
+            )
+            .onAppear { flicker = true }
     }
 }
 
