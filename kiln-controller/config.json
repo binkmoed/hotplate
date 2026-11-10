@@ -8,7 +8,8 @@
     "pin_ssr": 18,
     "pin_safety_relay": 23,
     "pin_lid_switch": 24,
-    "kw_elements": 7.1
+    "kw_elements": 7.1,
+    "lid_switch_enabled": false
   },
   "pid": {
     "kp": 3.0,
