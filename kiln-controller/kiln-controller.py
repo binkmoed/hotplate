@@ -438,6 +438,9 @@ class KilnController:
 
         self.session_logger = SessionLogger(
             config.sessions_dir, max_sessions=config.max_sessions)
+        # Close any sessions left open by a previous unclean shutdown so
+        # they don't linger as 'in-progress' in the app's history.
+        self.session_logger.finalize_dangling()
         self.watcher = OvenWatcher(self.oven, session_logger=self.session_logger)
         print("Oven watcher initialized (session logging enabled)")
 

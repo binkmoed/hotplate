@@ -187,6 +187,42 @@ class SessionLogger:
     # Retention
     # ------------------------------------------------------------------
 
+    def finalize_dangling(self):
+        """Close any session files left without an end line (e.g. the
+        controller was power-cycled mid-firing). Without this they show
+        up as 'in-progress' forever in the app's history."""
+        if not os.path.isdir(self.sessions_dir):
+            return 0
+        closed = 0
+        for name in self._session_files():
+            path = os.path.join(self.sessions_dir, name)
+            has_end = False
+            try:
+                with open(path) as f:
+                    for line in f:
+                        try:
+                            if json.loads(line).get('type') == 'end':
+                                has_end = True
+                                break
+                        except Exception:
+                            continue
+            except Exception:
+                pass
+            if not has_end:
+                try:
+                    with open(path, 'a') as f:
+                        f.write(json.dumps({
+                            'type': 'end',
+                            'outcome': 'aborted',
+                            'ended': time.time(),
+                            'detail': 'interrupted by controller restart',
+                        }) + '\n')
+                    closed += 1
+                    print(f"SessionLogger: finalized dangling session {name}")
+                except Exception as e:
+                    print(f"SessionLogger: cannot finalize {name}: {e}")
+        return closed
+
     def _prune(self):
         if self.max_sessions <= 0:
             return
