@@ -299,13 +299,14 @@ final class KilnClient: WebSocketServiceDelegate {
             let wasActive = self.status?.state == .running || self.status?.state == .paused
             self.status = status
 
-            // When the kiln returns to idle (e.g. after Stop), clear all
-            // firing state so stale values don't bleed into the next firing.
+            // When the kiln returns to idle (e.g. after Stop), clear the
+            // firing history but keep the IDLE status itself — it carries
+            // the current temperature (truthful, heat=0, runtime=0), which
+            // the Start Firing sheet uses to prefill the seek slider.
             if status.state == .idle {
                 if wasActive {
                     firingTransitionTime = Date()
                     self.history.removeAll()
-                    self.status = nil
                     self.checkForCompletedFiring()
                 }
                 self.firingStartOffset = 0
