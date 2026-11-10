@@ -226,9 +226,18 @@ struct SessionDetailView: View {
                     Text(e.detail?.isEmpty == false ? e.detail! : e.name.capitalized)
                     Spacer()
                     if let t = e.time {
-                        Text(Self.timeString(t))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                        // Offset maps to the chart's runtime x-axis; real time
+                        // anchors the event in the day. Show both.
+                        HStack(spacing: 6) {
+                            if let started = log.started {
+                                Text("+\(Format.clock(max(0, t - started)))")
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                            }
+                            Text(Self.timeString(t))
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .font(.subheadline)
