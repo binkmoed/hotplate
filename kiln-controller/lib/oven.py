@@ -263,11 +263,8 @@ class Oven(threading.Thread):
             self.abort_run()
             return
 
-        with self.lock:
-            self.current_temp = current_temp
-            self._update_heat_rate()
-
         # --- Phase 4: Safety (with fresh temperature) ---
+        with self.lock:
             self.check_safety_conditions()
             if self.state != 'RUNNING':
                 return
