@@ -230,6 +230,17 @@ class Config:
         return self.get("pid", "control_window", default=50.0)
 
     @property
+    def pid_approach_window(self):
+        """Degrees from target within which the soft-landing cap applies.
+        0 disables the soft landing (full PID authority at all times)."""
+        return self.get("pid", "approach_window", default=15.0)
+
+    @property
+    def pid_approach_max_output(self):
+        """Maximum duty (percent) while inside the approach window."""
+        return self.get("pid", "approach_max_output", default=40.0)
+
+    @property
     def max_ssr_on_time(self):
         return self.get("pid", "max_ssr_on_time", default=6.0)
 

@@ -111,6 +111,26 @@ check("F3: relay enabled before run", ok)
 hw5 = FakeHardware(lid_open=True)
 check("F3: start refused with lid open", not hw5.enable_safety_relay())
 
+# --- Soft landing: duty capped near the setpoint ---
+print("\n--- Soft landing cap ---")
+hw2, sn2 = FakeHardware(), FakeSensor()
+hw2.enable_safety_relay()
+ov2 = Oven(sn2, hw2)
+ov2.state = 'RUNNING'
+ov2.start_time = time.time()
+ov2.profile = Profile("t", [(0, 100), (600, 100)])
+ov2.totaltime = 600
+sn2.temp = 95.0   # within 15 degrees of the 100C target
+ov2.target_temp = 100.0
+ov2._control_cycle()
+on2 = hw2.ssrs[0] if hw2.ssrs else 0.0
+max_cap = 3.0 * 0.40  # duty_cycle * approach_max_output
+check("soft landing caps duty near target", 0 < on2 <= max_cap, f"on={on2:.2f} cap={max_cap:.2f}")
+sn2.temp = 50.0   # far from target: no cap
+ov2.runtime = 0.1
+ov2._control_cycle()
+check("no cap when far from target", hw2.ssrs[-1] > max_cap, f"on={hw2.ssrs[-1]:.2f}")
+
 fails = [n for n, ok, _ in PASS if not ok]
 print(f"\n{len(PASS)-len(fails)}/{len(PASS)} passed")
 sys.exit(1 if fails else 0)

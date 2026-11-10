@@ -284,6 +284,13 @@ class Oven(threading.Thread):
         # --- Phase 7: PID ---
             pid_output = self.pid.compute(self.target_temp, current_temp)
 
+            # Soft landing: when close to the target, cap the duty cycle so
+            # thermal momentum can't carry a low-mass load (hotplate) past
+            # the setpoint. Disabled when approach_window is 0.
+            if config.pid_approach_window > 0 and \
+                    abs(self.target_temp - current_temp) <= config.pid_approach_window:
+                pid_output = min(pid_output, config.pid_approach_max_output / 100.0)
+
         # --- Phase 8-9: Apply heating ---
             on_time = self._calc_on_time(pid_output)
             self.update_cost(on_time)
