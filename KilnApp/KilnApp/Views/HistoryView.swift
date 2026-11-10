@@ -221,7 +221,7 @@ struct SessionDetailView: View {
             ForEach(Array(log.events.enumerated()), id: \.offset) { _, e in
                 HStack {
                     Image(systemName: iconName(e.name))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(iconColor(e.name))
                         .frame(width: 22)
                     Text(e.detail?.isEmpty == false ? e.detail! : e.name.capitalized)
                     Spacer()
@@ -241,9 +241,19 @@ struct SessionDetailView: View {
 
     private func iconName(_ name: String) -> String {
         switch name {
-        case "run", "resume": return "play.circle"
+        case "run": return "play.circle"
+        case "resume": return "play.circle"
         case "pause": return "pause.circle"
         default: return "exclamationmark.triangle"
+        }
+    }
+
+    /// Timeline entries are muted so they don't read as tappable controls
+    /// (e.g. 'resume' is a historical record, not a button).
+    private func iconColor(_ name: String) -> Color {
+        switch name {
+        case "run", "resume", "pause": return .secondary
+        default: return .orange
         }
     }
 }
