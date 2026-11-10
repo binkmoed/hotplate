@@ -239,6 +239,11 @@ class Oven(threading.Thread):
                 if self.state == 'RUNNING':
                     self._control_cycle()
                 else:
+                    # Safety net: if an abort landed mid-heating-slice, the
+                    # in-flight cycle may have re-set heat after abort_run()
+                    # cleared it. Keep the idle view truthful.
+                    self.heat = 0.0
+                    self.hardware.disable_ssr()
                     # Still read temperature when idle so the dashboard
                     # shows the current kiln temperature (SSR is already
                     # off when idle, so no EMI concern).
@@ -343,7 +348,10 @@ class Oven(threading.Thread):
 
         if on_time > 0:
             energised = self.hardware.enable_ssr(duration=on_time)
-            self.heat = 1.0 if energised else 0.0
+            # A stop/abort may have landed while enable_ssr was sleeping
+            # through its on-slice. Don't re-flag heat if we're no longer
+            # RUNNING, or an IDLE oven would forever report heat ON.
+            self.heat = 1.0 if (energised and self.state == 'RUNNING') else 0.0
             if not energised:
                 # Lid opened mid-cycle (or interlock tripped): the
                 # hardware layer has already cut power and dropped the

@@ -280,6 +280,7 @@ struct DashboardView: View {
     private func heatText(_ heat: Double?, pidOut: Double?, state: KilnState?) -> String {
         // Only trust the PID output as a heat signal while actively running (it can go stale
         // after the firing stops). The server now reports `heat` accurately in every frame.
+        if state != .running && state != .paused { return "OFF" }   // elements can't be on when idle
         if state == .running, let out = pidOut, out > 0.01 { return "ON" }
         guard let heat else { return "OFF" }
         return heat >= 0.5 ? "ON" : "OFF"
