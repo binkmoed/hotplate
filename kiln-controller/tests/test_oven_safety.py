@@ -1,5 +1,5 @@
 """Tests for the kiln control-loop safety fixes. Run: python3 tests/test_oven_safety.py"""
-import sys, os, time, types
+import sys, os, time, types, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lib'))
 
@@ -130,6 +130,44 @@ sn2.temp = 50.0   # far from target: no cap
 ov2.runtime = 0.1
 ov2._control_cycle()
 check("no cap when far from target", hw2.ssrs[-1] > max_cap, f"on={hw2.ssrs[-1]:.2f}")
+
+# --- Completed firing: event + outcome reach the session log ---
+print("\n--- Completed firing event ---")
+from ovenWatcher import OvenWatcher
+from sessionlog import SessionLogger
+import tempfile
+
+tmpdir = tempfile.mkdtemp()
+sl = SessionLogger(tmpdir)
+sl.start(Profile("Lead", [(0, 100), (600, 200)]))
+hw6, sn6 = FakeHardware(), FakeSensor(210.0)
+ov6 = Oven(sn6, hw6)
+w = OvenWatcher(ov6, session_logger=sl)
+w._last_state = 'RUNNING'  # simulate a firing in progress
+# Fire runs, reaches the end of the profile, goes IDLE.
+ov6.state = 'RUNNING'
+ov6.start_time = time.time() - 700
+ov6.runtime = 700
+ov6.profile = Profile("Lead", [(0, 100), (600, 200)])
+ov6.totaltime = 600
+ov6.session_outcome = 'completed'
+ov6.raise_session_event('completed', 'profile finished after 600s, cost 0.10')
+ov6.state = 'IDLE'
+ov6.runtime = 0.0
+# One watcher duty cycle: drain events, log samples, close session.
+for name, detail in ov6.drain_session_events():
+    sl.event(name, detail)
+state = ov6.get_state()
+if state.get('state') in ('RUNNING', 'PAUSED'):
+    sl.log(state)
+w._record_session_event(state.get('state'))
+text = open(os.path.join(tmpdir, os.listdir(tmpdir)[0])).read()
+names = [json.loads(l)['name'] for l in text.splitlines() if json.loads(l).get('type') == 'event']
+outcome = [json.loads(l)['outcome'] for l in text.splitlines() if json.loads(l).get('type') == 'end']
+no_idle = not any(json.loads(l).get('state') == 'IDLE' for l in text.splitlines() if json.loads(l).get('type') == 'sample')
+check("completed event written to session log", 'completed' in names, f"events={names}")
+check("end outcome completed", outcome == ['completed'], f"outcome={outcome}")
+check("no IDLE sample logged after completion", no_idle)
 
 fails = [n for n, ok, _ in PASS if not ok]
 print(f"\n{len(PASS)-len(fails)}/{len(PASS)} passed")
