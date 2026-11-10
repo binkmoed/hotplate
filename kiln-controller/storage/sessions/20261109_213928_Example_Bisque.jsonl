@@ -1,0 +1,5 @@
+{"type": "meta", "id": "20261109_213928_Example_Bisque.jsonl", "started": 1794256768.130341, "startat": 0, "duration": 43200, "profile": {"type": "profile", "name": "Example_Bisque", "temp_units": "c", "data": [[0, 25], [3600, 100], [7200, 200], [10800, 400], [14400, 600], [18000, 800], [21600, 960], [25200, 1020], [28800, 1040], [32400, 1050], [36000, 1050], [39600, 100], [43200, 25]]}}
+{"cost": 0.0, "runtime": 3300.0, "temperature": 0.0, "target": 0.0, "state": "RUNNING", "heat": 0.0, "heat_rate": 0.0, "totaltime": 43200, "kwh_rate": 0.25, "currency_type": "\u20ac", "profile": "Example_Bisque", "pidstats": {}, "catching_up": false, "type": "sample"}
+{"type": "event", "name": "resume", "detail": "", "time": 1794256769.49396}
+{"cost": 0.0, "runtime": 0.0, "temperature": 0.0, "target": 0.0, "state": "IDLE", "heat": 0.0, "heat_rate": 0.0, "totaltime": 0.0, "kwh_rate": 0.25, "currency_type": "\u20ac", "profile": null, "pidstats": {}, "catching_up": false, "type": "sample"}
+{"type": "end", "outcome": "aborted", "ended": 1794256772.4964778}

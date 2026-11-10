@@ -8,15 +8,18 @@ from config import config
 class OvenWatcher(threading.Thread):
     """Broadcasts oven state to WebSocket observers every duty cycle."""
 
-    def __init__(self, oven):
+    def __init__(self, oven, session_logger=None):
         super().__init__()
         self.daemon = True
         self.running = False
         self.oven = oven
+        self.session_logger = session_logger
         self.observers = []
         self.backlog = deque(maxlen=50)
         self.backlog_profile = None
         self.lock = threading.Lock()
+        self._last_state = None
+        self._last_sample = {}
 
     def add_observer(self, ws):
         with self.lock:
@@ -45,6 +48,28 @@ class OvenWatcher(threading.Thread):
         with self.lock:
             self.backlog.clear()
             self.backlog_profile = profile
+        if profile is not None and self.session_logger is not None:
+            self.session_logger.start(profile)
+
+    def _record_session_event(self, state):
+        """Translate oven state transitions into session log events."""
+        if self.session_logger is None:
+            return
+        prev, cur = self._last_state, state
+        if prev != cur:
+            if cur == 'RUNNING':
+                self.session_logger.event('run' if prev is None else 'resume')
+            elif cur == 'PAUSED':
+                self.session_logger.event('pause')
+            elif prev in ('RUNNING', 'PAUSED'):
+                # Completed if the profile ran to its end, else aborted.
+                # (The oven resets runtime once idle, so use the last
+                # sample we logged before the transition.)
+                runtime = self._last_sample.get('runtime') or 0
+                total = self._last_sample.get('totaltime') or 0
+                outcome = 'completed' if total and runtime >= total else 'aborted'
+                self.session_logger.stop(outcome)
+        self._last_state = state
 
     def run(self):
         self.running = True
@@ -53,6 +78,10 @@ class OvenWatcher(threading.Thread):
                 state = self.oven.get_state()
                 self.backlog.append(state)
                 state_json = json.dumps(state)
+                if self.session_logger is not None:
+                    self.session_logger.log(state)
+                    self._last_sample = state
+                    self._record_session_event(state.get('state'))
 
                 with self.lock:
                     observers_snapshot = list(self.observers)

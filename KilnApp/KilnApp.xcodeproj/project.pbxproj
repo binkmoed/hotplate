@@ -8,17 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		2777E1A7F43BD2127EC7ADDF /* ConnectionSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F421B0D85578C981830AEF8E /* ConnectionSetupView.swift */; };
+		2A560804E25777FF9024047D /* SessionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5748AB829568BB076E8E13BE /* SessionModels.swift */; };
 		376D93C89B519CAAD4508FDA /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEE359AA89FBDFAECA2ECA8 /* MainTabView.swift */; };
 		3F539654FC31FEB650D29481 /* KilnAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F9B0AF77CC4B095427B4397 /* KilnAppApp.swift */; };
 		7547B2EC13A4F14EEF73A04E /* ProfileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA0550CFAADC0242376DC4E /* ProfileEditorView.swift */; };
+		77EBD3199B90A0221F3F3AD5 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E10F73BC4B6BCEA621BC39 /* HistoryView.swift */; };
 		945FFB4A5CB2F06C91506826 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60B02A2C3C99AC039E7A700F /* NotificationManager.swift */; };
 		969F37010F8C94C13F1E6738 /* KilnStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEED8C9C341ACE6A456A5C5 /* KilnStatus.swift */; };
+		A937311A964F7416CF3C81B4 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F957A3F008ADD3EE52DF9595 /* Logger.swift */; };
 		ABA30E2140623FCE37EBA987 /* WebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49D5D5675F9E75344E9B4EB4 /* WebSocketService.swift */; };
 		B99675323D7A96EF127736BB /* ProfileChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBD5F1548F5384BD76AF3A18 /* ProfileChart.swift */; };
 		BFDE86E9D53A4254C3C91EEE /* Messages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732F4EEBF630A2C97CAD28B2 /* Messages.swift */; };
 		C30DE4F8EEA0D331E2E3A99A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5253AFD0883CE88667185CD /* RootView.swift */; };
 		D73A58D999F79738D7C6F920 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC72C5661FC14E96649E0024 /* Format.swift */; };
-		E66660A304714B3FA22E2667 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF03B4C24CEA4F45ADB4745B /* Logger.swift */; };
 		D97A783B7599AA16B8417960 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D3994D41CF13580566F3491 /* SettingsView.swift */; };
 		E0EB1728585D801962235222 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC934F48782DB87F76FE96C /* DashboardView.swift */; };
 		E82ECB12130484F2068CE5C3 /* ControllerAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897AD01CCC234441AF90E113 /* ControllerAPI.swift */; };
@@ -34,6 +36,7 @@
 		2FEED8C9C341ACE6A456A5C5 /* KilnStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnStatus.swift; sourceTree = "<group>"; };
 		49D5D5675F9E75344E9B4EB4 /* WebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketService.swift; sourceTree = "<group>"; };
 		50F7FEB8CF6C31691F905005 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		5748AB829568BB076E8E13BE /* SessionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionModels.swift; sourceTree = "<group>"; };
 		5D3994D41CF13580566F3491 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		60B02A2C3C99AC039E7A700F /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		714314C84E4C40A56ABF8657 /* TemperatureChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemperatureChart.swift; sourceTree = "<group>"; };
@@ -44,11 +47,12 @@
 		8F9B0AF77CC4B095427B4397 /* KilnAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnAppApp.swift; sourceTree = "<group>"; };
 		BBD5F1548F5384BD76AF3A18 /* ProfileChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileChart.swift; sourceTree = "<group>"; };
 		BC72C5661FC14E96649E0024 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
-		BF03B4C24CEA4F45ADB4745B /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		C5253AFD0883CE88667185CD /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		D8E10F73BC4B6BCEA621BC39 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		E9973B16325ABA6B1C9D2DFC /* KilnApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = KilnApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA5A0477C37A7A7561C547D9 /* Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Profile.swift; sourceTree = "<group>"; };
 		F421B0D85578C981830AEF8E /* ConnectionSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSetupView.swift; sourceTree = "<group>"; };
+		F957A3F008ADD3EE52DF9595 /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		FEEE359AA89FBDFAECA2ECA8 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		FF8F9AEF3A54A85F5D62E6E6 /* ProfileListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileListView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -80,7 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				BC72C5661FC14E96649E0024 /* Format.swift */,
-				BF03B4C24CEA4F45ADB4745B /* Logger.swift */,
+				F957A3F008ADD3EE52DF9595 /* Logger.swift */,
 				60B02A2C3C99AC039E7A700F /* NotificationManager.swift */,
 			);
 			path = Support;
@@ -92,6 +96,7 @@
 				2FEED8C9C341ACE6A456A5C5 /* KilnStatus.swift */,
 				732F4EEBF630A2C97CAD28B2 /* Messages.swift */,
 				EA5A0477C37A7A7561C547D9 /* Profile.swift */,
+				5748AB829568BB076E8E13BE /* SessionModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -117,6 +122,7 @@
 			children = (
 				F421B0D85578C981830AEF8E /* ConnectionSetupView.swift */,
 				7AC934F48782DB87F76FE96C /* DashboardView.swift */,
+				D8E10F73BC4B6BCEA621BC39 /* HistoryView.swift */,
 				FEEE359AA89FBDFAECA2ECA8 /* MainTabView.swift */,
 				7EA0550CFAADC0242376DC4E /* ProfileEditorView.swift */,
 				FF8F9AEF3A54A85F5D62E6E6 /* ProfileListView.swift */,
@@ -206,13 +212,14 @@
 			files = (
 				2777E1A7F43BD2127EC7ADDF /* ConnectionSetupView.swift in Sources */,
 				E82ECB12130484F2068CE5C3 /* ControllerAPI.swift in Sources */,
-				E66660A304714B3FA22E2667 /* Logger.swift in Sources */,
 				E0EB1728585D801962235222 /* DashboardView.swift in Sources */,
 				D73A58D999F79738D7C6F920 /* Format.swift in Sources */,
+				77EBD3199B90A0221F3F3AD5 /* HistoryView.swift in Sources */,
 				EF21036FD4704FFC9AF3A277 /* KeychainStore.swift in Sources */,
 				3F539654FC31FEB650D29481 /* KilnAppApp.swift in Sources */,
 				F7CAFB77C0A5AE8C28D2ABCB /* KilnClient.swift in Sources */,
 				969F37010F8C94C13F1E6738 /* KilnStatus.swift in Sources */,
+				A937311A964F7416CF3C81B4 /* Logger.swift in Sources */,
 				376D93C89B519CAAD4508FDA /* MainTabView.swift in Sources */,
 				BFDE86E9D53A4254C3C91EEE /* Messages.swift in Sources */,
 				945FFB4A5CB2F06C91506826 /* NotificationManager.swift in Sources */,
@@ -221,6 +228,7 @@
 				7547B2EC13A4F14EEF73A04E /* ProfileEditorView.swift in Sources */,
 				F3A9E539A231A5D6F508292F /* ProfileListView.swift in Sources */,
 				C30DE4F8EEA0D331E2E3A99A /* RootView.swift in Sources */,
+				2A560804E25777FF9024047D /* SessionModels.swift in Sources */,
 				D97A783B7599AA16B8417960 /* SettingsView.swift in Sources */,
 				EC97F526D88078E6FCF0F4F8 /* TemperatureChart.swift in Sources */,
 				ABA30E2140623FCE37EBA987 /* WebSocketService.swift in Sources */,

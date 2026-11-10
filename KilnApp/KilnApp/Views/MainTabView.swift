@@ -13,6 +13,9 @@ struct MainTabView: View {
                 .tabItem { Label("Profiles", systemImage: "list.bullet.rectangle") }
                 .task { client.refreshStorage() }
 
+            HistoryView()
+                .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
+
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }

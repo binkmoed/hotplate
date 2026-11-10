@@ -55,18 +55,19 @@ class PID:
 
         p = self.kp * err
 
-        self.iterm += err * dt
+        # Standard form: i-term carries the gain directly
+        self.iterm += self.ki * err * dt
         self.iterm = max(min(self.iterm, 100), -100)
 
-        i = self.iterm * (1.0 / self.ki) if self.ki != 0 else 0.0
+        i = self.iterm
 
         d = self.kd * (err_delta / dt)
 
         pid = p + i + d
-        pid = max(min(pid, 100), -100)
+        pid = max(min(pid, 100), 0.0)  # negative output means no heating
 
-        out = (pid + 100) / 200.0
-        out = max(min(out, 1.0), 0.0)
+        # Direct mapping: pid 0 -> 0% duty, pid 100 -> 100% duty
+        out = pid / 100.0
 
         self.last_time = now
         self.last_err = err
@@ -229,12 +230,29 @@ class Oven(threading.Thread):
         self.heat = 0.0
         time.sleep(config.temp_settle_time)
 
+        consecutive_failures = getattr(self, '_consecutive_read_failures', 0)
         try:
             current_temp = self.temp_sensor.safe_read()
+            consecutive_failures = 0
         except RuntimeError as e:
             print(f"Temperature read failed: {e}")
             # Use last known temperature as fallback
             current_temp = self.current_temp
+            consecutive_failures += 1
+        self._consecutive_read_failures = consecutive_failures
+
+        with self.lock:
+            self.current_temp = current_temp
+            self._update_heat_rate()
+
+        # Abort if the sensor has failed repeatedly — heating blind is
+        # not safe even if the error-rate check would eventually fire.
+        if consecutive_failures >= config.max_consecutive_read_failures:
+            print("Aborting: temperature sensor failed repeatedly")
+            if self.alert_manager:
+                self.alert_manager.alert_thermocouple_error(1.0)
+            self.abort_run()
+            return
 
         with self.lock:
             self.current_temp = current_temp
@@ -259,11 +277,18 @@ class Oven(threading.Thread):
 
         # --- Phase 8-9: Apply heating ---
             on_time = self._calc_on_time(pid_output)
-            self.update_cost()
+            self.update_cost(on_time)
 
         if on_time > 0:
-            self.hardware.enable_ssr(duration=on_time)
-            self.heat = 1.0
+            energised = self.hardware.enable_ssr(duration=on_time)
+            self.heat = 1.0 if energised else 0.0
+            if not energised:
+                # Lid opened mid-cycle (or interlock tripped): the
+                # hardware layer has already cut power and dropped the
+                # relay — bring the oven state machine in line now
+                # instead of waiting for the next control cycle.
+                self.abort_run()
+                return
         else:
             self.heat = 0.0
 
@@ -396,9 +421,17 @@ class Oven(threading.Thread):
         if self.profile and self.state == 'RUNNING':
             self.target_temp = self.profile.get_target_temperature(self.runtime)
 
-    def update_cost(self):
-        if self.state == 'RUNNING' and self.heat > 0:
-            cycle_cost = (config.kw_elements * config.kwh_rate * config.duty_cycle) / 3600.0
+    def update_cost(self, on_time):
+        """Accumulate energy cost from the *actual* planned on-time.
+
+        Called before the SSR is energised (self.heat not yet set),
+        so we key off on_time rather than self.heat.  If the SSR is
+        cut early (lid opened) the next cycle sees heat=0 and no
+        further cost accrues; the small over-report for the final
+        partial cycle is acceptable.
+        """
+        if self.state == 'RUNNING' and on_time > 0:
+            cycle_cost = (config.kw_elements * config.kwh_rate * on_time) / 3600.0
             self.cost += cycle_cost
 
     def check_safety_conditions(self):

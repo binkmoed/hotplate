@@ -234,6 +234,18 @@ class Config:
         return self.get("pid", "duty_cycle", default=3.0)
 
     @property
+    def max_consecutive_read_failures(self):
+        return self.get("pid", "max_consecutive_read_failures", default=3)
+
+    @property
+    def sessions_dir(self):
+        return self.get("storage", "sessions_dir", default=os.path.join(os.path.dirname(__file__), "storage", "sessions"))
+
+    @property
+    def max_sessions(self):
+        return self.get("storage", "max_sessions", default=0)
+
+    @property
     def max_ssr_on_percentage(self):
         return self.get("pid", "max_ssr_on_percentage", default=90.0)
 

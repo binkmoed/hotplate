@@ -105,6 +105,45 @@ struct ControllerAPI: Sendable {
         )
     }
 
+    // MARK: - Sessions
+
+    /// `GET /api/sessions` — list of recorded firings (newest first).
+    func getSessions() async throws -> [SessionSummary] {
+        let (data, resp) = try await data(for: .get, path: "/api/sessions")
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        return try decode([SessionSummary].self, data)
+    }
+
+    /// `GET /api/sessions/<id>` — full JSON-lines log for one firing.
+    func getSessionLog(id: String) async throws -> SessionLog {
+        // IDs are server-generated filenames; encode to keep '/' safe.
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let (data, resp) = try await data(for: .get, path: "/api/sessions/\(encoded)")
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw APIError.decoding("Session log is not UTF-8")
+        }
+        return SessionLogParser.parse(text, id: id)
+    }
+
+    /// `DELETE /api/sessions/<id>` — remove one recorded firing.
+    func deleteSession(id: String) async throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        var req = URLRequest(url: baseURL.appendingPathComponent("/api/sessions/\(encoded)"))
+        req.httpMethod = "DELETE"
+        req.timeoutInterval = 8
+        let (_, resp): (Data, URLResponse)
+        do { (_, resp) = try await session.data(for: req) }
+        catch { throw APIError.transport(error.localizedDescription) }
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw APIError.invalidResponse
+        }
+    }
+
     // MARK: - Low-level helpers
 
     private enum Method: String { case get = "GET", post = "POST" }

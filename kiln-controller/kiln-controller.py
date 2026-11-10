@@ -17,6 +17,7 @@ from lib.tempSensor import TempSensor
 from lib.hardware import HardwareController
 from lib.ovenWatcher import OvenWatcher
 from lib.alerting import AlertManager
+from lib.sessionlog import SessionLogger
 
 
 # ---------------------------------------------------------------------------
@@ -233,9 +234,11 @@ def handle_control():
                     profile_data = data.get('profile')
                     if profile_data:
                         profile = Profile.from_dict(profile_data)
-                        controller.oven.run_profile(profile)
-                        controller.watcher.record(profile)
-                        controller.hardware.enable_safety_relay()
+                        if controller.hardware.enable_safety_relay():
+                            controller.oven.run_profile(profile)
+                            controller.watcher.record(profile)
+                        # If the relay can't be enabled (lid open) the
+                        # profile simply doesn't start.
                 elif cmd == 'STOP':
                     controller.oven.stop()
                     controller.watcher.record(None)
@@ -245,6 +248,32 @@ def handle_control():
                 pass
     except WebSocketError:
         pass
+
+
+@app.route('/api/sessions')
+def handle_sessions_list():
+    """List recorded firing sessions (newest first)."""
+    response.content_type = 'application/json'
+    return json.dumps(controller.session_logger.list_sessions())
+
+
+@app.route('/api/sessions/<session_id>')
+def handle_session_get(session_id):
+    """Return the full JSON-lines log for one session."""
+    log = controller.session_logger.get_log(session_id)
+    if log is None:
+        abort(404, 'Session not found')
+    response.content_type = 'application/x-ndjson'
+    return log
+
+
+@app.route('/api/sessions/<session_id>', method='DELETE')
+def handle_session_delete(session_id):
+    """Delete one recorded session (refuses the in-progress one)."""
+    if controller.session_logger.delete(session_id):
+        response.content_type = 'application/json'
+        return json.dumps({'success': True})
+    abort(404, 'Session not found or in progress')
 
 
 @app.route('/storage')
@@ -407,8 +436,10 @@ class KilnController:
         self.oven = Oven(self.temp_sensor, self.hardware, self.alert_manager)
         print("Oven initialized")
 
-        self.watcher = OvenWatcher(self.oven)
-        print("Oven watcher initialized")
+        self.session_logger = SessionLogger(
+            config.sessions_dir, max_sessions=config.max_sessions)
+        self.watcher = OvenWatcher(self.oven, session_logger=self.session_logger)
+        print("Oven watcher initialized (session logging enabled)")
 
         self.check_automatic_restart()
 
@@ -435,10 +466,12 @@ class KilnController:
                         profile = Profile.from_dict(profile_data)
                         startat = saved_state.get('runtime', 0)
 
-                        self.oven.run_profile(profile, startat=startat, allow_seek=False)
-                        self.watcher.record(profile)
-                        self.watcher.start()
-                        self.hardware.enable_safety_relay()
+                        if self.hardware.enable_safety_relay():
+                            self.oven.run_profile(profile, startat=startat, allow_seek=False)
+                            self.watcher.record(profile)
+                            self.watcher.start()
+                        else:
+                            print("Auto-restart aborted: cannot enable safety relay (lid open?)")
 
                         print(f"Resumed profile '{profile_name}' at {startat}s")
                         self.alert_manager.send_alert(
@@ -494,10 +527,11 @@ class KilnController:
                 profile_data = json.load(f)
             profile = Profile.from_dict(profile_data)
 
+            if not self.hardware.enable_safety_relay():
+                return json.dumps({'success': False, 'error': 'Cannot start: lid is open'})
+
             self.oven.run_profile(profile, startat=startat)
             self.watcher.record(profile)
-            self.hardware.enable_safety_relay()
-
             self.alert_manager.send_alert(
                 "FIRING_STARTED",
                 f"Started firing profile '{profile_name}'",

@@ -240,8 +240,38 @@ final class KilnClient: WebSocketServiceDelegate {
                     return ChartSample(runtime: t + offset, temperature: temp, target: s.target ?? 0)
                 }
                 self.status = log.last
+                // If a firing is in progress the backlog only holds the last
+                // ~50 samples — fetch the full persisted session to close
+                // the gap after a reconnect.
+                if log.last?.state == .running || log.last?.state == .paused {
+                    self.backfillLiveHistory()
+                }
             } else {
                 self.history = []
+            }
+        }
+    }
+
+    /// Fetch the in-progress session log from the server and replace the
+    /// 50-sample backlog seed with the full firing history.
+    private func backfillLiveHistory() {
+        guard let rest else { return }
+        let offset = firingStartOffset
+        Task.detached(priority: .utility) { [weak self] in
+            guard let summaries = try? await rest.getSessions(),
+                  let latest = summaries.first else { return }
+            guard let session = try? await rest.getSessionLog(id: latest.id) else { return }
+            let samples = session.samples.compactMap { s -> ChartSample? in
+                guard let t = s.runtime, let temp = s.temperature else { return nil }
+                return ChartSample(runtime: t + offset, temperature: temp, target: s.target ?? 0)
+            }
+            guard !samples.isEmpty else { return }
+            await MainActor.run { [weak self] in
+                guard let self, self.currentState == .running || self.currentState == .paused else { return }
+                // Only replace if we actually gained data vs. the backlog seed.
+                if samples.count > self.history.count {
+                    self.history = samples
+                }
             }
         }
     }
