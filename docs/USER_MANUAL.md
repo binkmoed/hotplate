@@ -54,6 +54,27 @@ service; the phone must be on the same network as the Pi.
   cuts all power immediately and your phone shows a **"Firing Aborted"**
   alert **with the reason**.
 
+### How temperature is measured (and why it matters)
+
+The controller **never reads the thermocouple while the elements are
+energised**. Each 3-second duty cycle follows an EMI-safe sequence:
+
+1. SSR off → 2. wait 0.5 s settle time → 3. read temperature →
+4. PID computes → 5. SSR on for its slice → 6. quiet sleep.
+
+The settle time is even reserved out of the SSR's maximum on-time, so a
+long heating burst can never crowd out the next read.
+
+This matters especially at high firing temperatures: the hot air around
+the elements **ionizes and becomes conductive**, and the resulting
+electrical noise skews the MAX31856's SPI measurements. A temperature
+sampled mid-heat could read wildly wrong — and a falsely *low* reading
+would drive the PID to dump even more power into an already-at-temperature
+kiln. Quiet-window sampling guarantees every temperature the PID and the
+safety interlocks act on is trustworthy. (If the sensor does fail to read
+— e.g. a transient fault — the controller retries, logs a `sensor_retry`
+event, and aborts rather than heating blind.)
+
 ### Safety aborts — what they mean
 
 | Reason | Meaning | What to check |

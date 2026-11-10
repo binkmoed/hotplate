@@ -11,6 +11,18 @@ Wire protocol reference: [`../api.md`](../api.md)
 
 - **PID temperature control** with time-slice duty cycling of the SSR
   (configurable window, max on-time, max duty %).
+- **EMI-safe temperature sampling** — the thermocouple is *only* read in
+  the quiet window: each duty cycle switches the SSR off, waits
+  `temp_settle_time` (0.5 s) for switching EMI to dissipate, reads the
+  MAX31856, and only then energises the elements. The settle time is
+  reserved out of the SSR's maximum on-time (`_calc_on_time()`) so a
+  heating burst can never crowd out the next read. This is essential at
+  high temperatures, where the air around the elements ionizes and
+  becomes conductive, skewing SPI thermocouple measurements — a falsely
+  low mid-heat sample would make the PID over-drive an already-hot kiln.
+  Sensor read failures fall back to the last known good temperature,
+  log a `sensor_retry` event, and abort after repeated failures instead
+  of heating blind.
 - **Firing profiles** — `[seconds, °C]` ramps/soaks stored as JSON in
   `storage/profiles/`; seek-start (jump to where the kiln already is) and
   catch-up after restarts.
