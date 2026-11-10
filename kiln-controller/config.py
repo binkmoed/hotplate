@@ -171,7 +171,7 @@ class Config:
 
     @property
     def spi_device(self):
-        return self.get("hardware", "spi_device", default=0)
+        return self.get("hardware", "spi_device", default=1)
 
     @property
     def sensor_type(self):
@@ -195,11 +195,13 @@ class Config:
 
     @property
     def pin_ssr(self):
-        return self.get("hardware", "pin_ssr", default=18)
+        return self.get("hardware", "pin_ssr", default=23)
 
     @property
     def pin_safety_relay(self):
-        return self.get("hardware", "pin_safety_relay", default=23)
+        # No physical safety relay: BCM18 drives the board status LED,
+        # used as the 'armed' indicator.
+        return self.get("hardware", "pin_safety_relay", default=18)
 
     @property
     def pin_lid_switch(self):
@@ -207,7 +209,7 @@ class Config:
 
     @property
     def lid_switch_enabled(self):
-        return self.get("hardware", "lid_switch_enabled", default=True)
+        return self.get("hardware", "lid_switch_enabled", default=False)
 
     @property
     def kw_elements(self):
@@ -316,7 +318,7 @@ class Config:
 
     @property
     def kwh_rate(self):
-        return self.get("display", "kwh_rate", default=0.25)
+        return self.get("display", "kwh_rate", default=0.27)
 
     @property
     def currency_type(self):
