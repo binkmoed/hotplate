@@ -182,7 +182,10 @@ final class KilnClient: WebSocketServiceDelegate {
 
     func run(profile name: String, startAt: Double? = nil) async {
         guard let rest else { return }
-        firingStartOffset = startAt ?? 0
+        // The server's runtime already includes the start offset
+        // (run_profile sets start_time = now - startat), so the chart must
+        // NOT add it again — that double-counted and shifted the line.
+        firingStartOffset = 0
         history.removeAll()
         status = nil
         userStoppedFiring = false
