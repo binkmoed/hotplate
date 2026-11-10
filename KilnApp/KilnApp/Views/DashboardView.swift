@@ -70,6 +70,19 @@ struct DashboardView: View {
                     Text("")
                 }
             }
+            .alert("Firing Aborted", isPresented: Binding(
+                get: { client.abortedFiring != nil },
+                set: { if !$0 { client.acknowledgeAbortedFiring() } }
+            )) {
+                Button("OK") { client.acknowledgeAbortedFiring() }
+            } message: {
+                if let firing = client.abortedFiring {
+                    let reason = client.abortReason.map { " — \($0)" } ?? ""
+                    Text("\(firing.profile?.name ?? "The firing") was aborted\(reason)" + summaryText(firing))
+                } else {
+                    Text("")
+                }
+            }
         }
     }
 

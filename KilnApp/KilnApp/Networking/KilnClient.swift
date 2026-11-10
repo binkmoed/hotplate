@@ -74,8 +74,14 @@ final class KilnClient: WebSocketServiceDelegate {
     /// Set when a firing finishes on its own (runs to completion). The dashboard
     /// shows an acknowledgement alert until the user dismisses it.
     private(set) var completedFiring: SessionSummary?
+    /// Set when a firing ends aborted for a non-user reason (safety abort,
+    // stall, sensor fault…). User-initiated stops do not raise an alert.
+    private(set) var abortedFiring: SessionSummary?
+    private(set) var abortReason: String?
+    private var userStoppedFiring = false
 
     func acknowledgeCompletedFiring() { completedFiring = nil }
+    func acknowledgeAbortedFiring() { abortedFiring = nil; abortReason = nil }
 
     // MARK: Internals
 
@@ -179,6 +185,7 @@ final class KilnClient: WebSocketServiceDelegate {
         firingStartOffset = startAt ?? 0
         history.removeAll()
         status = nil
+        userStoppedFiring = false
         do {
             try await rest.run(profile: name, startAt: startAt)
             lastCommandError = nil
@@ -189,6 +196,7 @@ final class KilnClient: WebSocketServiceDelegate {
 
     func stop() async {
         guard let rest else { return }
+        userStoppedFiring = true
         do {
             try await rest.stop()
             lastCommandError = nil
@@ -338,8 +346,9 @@ final class KilnClient: WebSocketServiceDelegate {
 
     /// After the kiln goes idle, poll the session list briefly: the watcher
     /// writes the 'end' record on its next duty cycle, so the outcome may not
-    /// be visible immediately. Only a 'completed' outcome raises the alert —
-    /// a user-initiated Stop shows as 'aborted' and is not celebrated.
+    /// be visible immediately. 'completed' raises the success alert; 'aborted'
+    /// raises an alert too — unless the user stopped the firing themselves
+    /// (they know, no alert wanted) — with the abort reason from the log.
     private func checkForCompletedFiring() {
         guard let rest else { return }
         let transition = firingTransitionTime
@@ -348,11 +357,21 @@ final class KilnClient: WebSocketServiceDelegate {
                 if Task.isCancelled { return }
                 if let sessions = try? await rest.getSessions(),
                    let latest = sessions.first,
-                   latest.outcome == "completed",
                    let started = latest.started,
                    started > transition.timeIntervalSince1970 - 5 {
-                    self.completedFiring = latest
-                    return
+                    if latest.outcome == "completed" {
+                        self.completedFiring = latest
+                        return
+                    }
+                    if latest.outcome == "aborted" && !self.userStoppedFiring {
+                        var reason: String?
+                        if let log = try? await rest.getSessionLog(id: latest.id) {
+                            reason = log.events.last(where: { $0.name == "abort" })?.detail
+                        }
+                        self.abortReason = reason
+                        self.abortedFiring = latest
+                        return
+                    }
                 }
                 try? await Task.sleep(for: .seconds(2))
             }

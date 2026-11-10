@@ -323,6 +323,12 @@ class Oven(threading.Thread):
             pid_output = self.pid.compute(self.target_temp, current_temp)
 
             self._check_heating_stall(pid_output)
+            # The stall check may have aborted the firing (state → IDLE,
+            # relay dropped). Stop here — otherwise the saturated PID makes
+            # us attempt enable_ssr, which fails and raises a spurious
+            # second 'safety interlock' abort event.
+            if self.state != 'RUNNING':
+                return
 
             # Soft landing: when close to the target, cap the duty cycle so
             # thermal momentum can't carry a low-mass load (hotplate) past
