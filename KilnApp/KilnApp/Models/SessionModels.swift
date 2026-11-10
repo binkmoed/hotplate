@@ -72,11 +72,18 @@ enum SessionLogParser {
 }
 
 extension SessionLog {
-    /// Chart history reconstructed from the session samples.
+    /// Chart history reconstructed from the session samples. Runtime is
+    /// expected to be monotonically increasing; any sample that goes back
+    /// (e.g. a stray post-stop IDLE sample with runtime 0 in old logs) is
+    /// dropped so the line doesn't snap back to the origin.
     var chartHistory: [ChartSample] {
-        samples.compactMap { s in
-            guard let t = s.runtime, let temp = s.temperature else { return nil }
-            return ChartSample(runtime: t, temperature: temp, target: s.target ?? 0)
+        var result: [ChartSample] = []
+        var lastRuntime = -1.0
+        for s in samples {
+            guard let t = s.runtime, let temp = s.temperature, t >= lastRuntime else { continue }
+            lastRuntime = t
+            result.append(ChartSample(runtime: t, temperature: temp, target: s.target ?? 0))
         }
+        return result
     }
 }

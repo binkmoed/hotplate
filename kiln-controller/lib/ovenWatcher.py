@@ -87,8 +87,13 @@ class OvenWatcher(threading.Thread):
                     # last cycle (abort reasons, sensor retries, stalls…).
                     for name, detail in self.oven.drain_session_events():
                         self.session_logger.event(name, detail)
-                    self.session_logger.log(state)
-                    self._last_sample = state
+                    # Only persist samples while a firing is active. The first
+                    # IDLE sample after a stop/abort carries runtime=0 (the
+                    # oven resets it), which would otherwise draw the chart
+                    # line back to the origin.
+                    if state.get('state') in ('RUNNING', 'PAUSED'):
+                        self.session_logger.log(state)
+                        self._last_sample = state
                     self._record_session_event(state.get('state'))
 
                 with self.lock:
