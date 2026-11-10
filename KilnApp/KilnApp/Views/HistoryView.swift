@@ -225,8 +225,8 @@ struct SessionDetailView: View {
                         .frame(width: 22)
                     Text(e.detail?.isEmpty == false ? e.detail! : e.name.capitalized)
                     Spacer()
-                    if let t = e.time, let started = log.started {
-                        Text("+\(Format.clock(max(0, t - started)))")
+                    if let t = e.time {
+                        Text(Self.timeString(t))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -237,6 +237,16 @@ struct SessionDetailView: View {
         }
         .padding()
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        return f
+    }()
+
+    private static func timeString(_ epoch: Double) -> String {
+        timeFormatter.string(from: Date(timeIntervalSince1970: epoch))
     }
 
     private func iconName(_ name: String) -> String {
