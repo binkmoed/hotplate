@@ -63,14 +63,14 @@ struct TemperatureChart: View {
             }
         }
         .chartYAxis {
-            AxisMarks(position: .leading, values: .stride(by: 50)) { v in
+            AxisMarks(position: .leading, values: Array(stride(from: 0.0, through: yUpper, by: yStride))) { v in
                 AxisGridLine()
-                if let t = v.as(Double.self), Int(t.rounded()) % 250 == 0 {
+                if let t = v.as(Double.self) {
                     AxisValueLabel { Text("\(Int(t))°") }
                 }
             }
         }
-        .chartYScale(domain: 0...1250)
+        .chartYScale(domain: 0...yUpper)
         .chartXScale(domain: 0...xUpper)
         .chartLegend(.hidden)
     }
@@ -79,6 +79,23 @@ struct TemperatureChart: View {
     private var xUpper: Double {
         let endMinutes = (total ?? schedule?.last?.time ?? history.last?.runtime ?? 0) / 60
         return Swift.max(1, endMinutes + 30)
+    }
+
+    /// Y-axis upper bound: highest of schedule / measured temperature + 10%
+    /// headroom, floored at 100° so tiny profiles still get a sensible axis.
+    private var yUpper: Double {
+        let scheduleMax = schedule?.map(\.temp).max() ?? 0
+        let actualMax = history.map(\.temperature).max() ?? 0
+        return Swift.max(100, Double(Int(Swift.max(scheduleMax, actualMax) * 1.1)))
+    }
+
+    /// A "nice" stride that yields roughly 4–8 labelled gridlines.
+    private var yStride: Double {
+        let target = yUpper / 6
+        for step in [10.0, 25.0, 50.0, 100.0, 200.0, 250.0, 500.0] {
+            if step >= target { return step }
+        }
+        return 500
     }
 
     private func formatHours(_ minutes: Double) -> String {
