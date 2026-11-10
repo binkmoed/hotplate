@@ -55,9 +55,18 @@ class PID:
 
         p = self.kp * err
 
-        # Standard form: i-term carries the gain directly
-        self.iterm += self.ki * err * dt
-        self.iterm = max(min(self.iterm, 100), -100)
+        # Anti-windup (conditional integration): only let the integrator
+        # accumulate when doing so can actually change the output. If the
+        # unsaturated output is already beyond a limit and the error pushes
+        # further into that limit, freeze the integrator instead of winding
+        # up. Without this, a long ramp saturates the i-term at +100 for the
+        # whole climb and causes severe overshoot on low-mass loads
+        # (hotplates) once the target is reached.
+        unsat = p + self.iterm + (self.kd * (err_delta / dt))
+        windup = (unsat > 100 and err > 0) or (unsat < 0 and err < 0)
+        if not windup:
+            self.iterm += self.ki * err * dt
+            self.iterm = max(min(self.iterm, 100), -100)
 
         i = self.iterm
 

@@ -206,6 +206,10 @@ class Config:
         return self.get("hardware", "pin_lid_switch", default=24)
 
     @property
+    def lid_switch_enabled(self):
+        return self.get("hardware", "lid_switch_enabled", default=True)
+
+    @property
     def kw_elements(self):
         return self.get("hardware", "kw_elements", default=7.1)
 

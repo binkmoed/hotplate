@@ -15,6 +15,11 @@ struct SettingsView: View {
     @State private var thermocouple: String = "K"
     @State private var feedback: String?
 
+    /// Server-side (saved) gains, updated whenever fresh config arrives.
+    @State private var savedKp: Double = 3
+    @State private var savedKi: Double = 75
+    @State private var savedKd: Double = 12
+
     /// Thermocouple types supported by each sensor board, per the controller docs.
     private let supportedTC: [String: [String]] = [
         "MAX31855": ["K"],
@@ -70,8 +75,20 @@ struct SettingsView: View {
         }
     }
 
+    /// Server-side (saved) display values, updated whenever fresh config arrives.
+    @State private var savedKwhRate: Double = 0.25
+    @State private var savedCurrency: String = "€"
+    @State private var savedTempScale: String = "c"
+
     private var displaySection: some View {
         Section {
+            if hasUnsavedDisplay {
+                Label("Unsaved changes", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            } else {
+                Label("Settings applied", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
             HStack {
                 Stepper(value: $kwhRate, in: 0...1, step: 0.01) {
                     LabeledContent("kWh Rate", value: String(format: "%.2f", kwhRate))
@@ -88,9 +105,16 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
                 .frame(width: 140)
             }
-            Button("Apply Display Settings") {
+            Button {
                 Task { await applyDisplay() }
+            } label: {
+                Label(
+                    hasUnsavedDisplay ? "Apply Display Settings" : "Display Settings Applied",
+                    systemImage: hasUnsavedDisplay ? "exclamationmark.circle.fill" : "checkmark.circle.fill"
+                )
             }
+            .foregroundStyle(hasUnsavedDisplay ? .red : .green)
+            .disabled(!hasUnsavedDisplay)
         } header: {
             Text("Display")
         } footer: {
@@ -98,14 +122,38 @@ struct SettingsView: View {
         }
     }
 
+    /// True when the display controls no longer match the values on the server.
+    private var hasUnsavedDisplay: Bool {
+        kwhRate != savedKwhRate || currency != savedCurrency || tempScale != savedTempScale
+    }
+
+    /// True when the sliders no longer match the gains saved on the server.
+    private var hasUnsavedPIDGains: Bool {
+        kp != savedKp || ki != savedKi || kd != savedKd
+    }
+
     private var pidSection: some View {
         Section {
+            if hasUnsavedPIDGains {
+                Label("Unsaved changes", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            } else {
+                Label("Gains applied", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
             sliderRow(title: "Kp", value: $kp, range: 0...20, step: 0.1, format: "%.1f")
             sliderRow(title: "Ki", value: $ki, range: 0...300, step: 1, format: "%.0f")
             sliderRow(title: "Kd", value: $kd, range: 0...100, step: 0.5, format: "%.1f")
-            Button("Apply PID Gains") {
+            Button {
                 Task { await applyPID() }
+            } label: {
+                Label(
+                    hasUnsavedPIDGains ? "Apply PID Gains" : "PID Gains Applied",
+                    systemImage: hasUnsavedPIDGains ? "exclamationmark.circle.fill" : "checkmark.circle.fill"
+                )
             }
+            .foregroundStyle(hasUnsavedPIDGains ? .red : .green)
+            .disabled(!hasUnsavedPIDGains)
             if let full = client.fullConfig, let pid = full.pid {
                 let window = pid["control_window"]?.numberValue ?? 50
                 LabeledContent("Control window", value: "\(Int(window))°")
@@ -133,8 +181,25 @@ struct SettingsView: View {
         }
     }
 
+    /// True when the sensor board / thermocouple pickers no longer match the
+    /// values saved on the server.
+    private var hasUnsavedHardware: Bool {
+        guard let hw = client.fullConfig?.hardware else { return false }
+        let serverSensor = hw["sensor_type"]?.stringValue ?? "MAX31856"
+        let key = serverSensor == "MAX31855" ? "thermocouple_type_max31855" : "thermocouple_type_max31856"
+        let serverTC = hw[key]?.stringValue ?? "K"
+        return sensorType != serverSensor || thermocouple != serverTC
+    }
+
     private var hardwareSection: some View {
         Section {
+            if hasUnsavedHardware {
+                Label("Unsaved changes", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            } else {
+                Label("Settings applied", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
             Picker("Sensor Board", selection: $sensorType) {
                 ForEach(supportedTC.keys.sorted(), id: \.self) { Text($0).tag($0) }
             }
@@ -152,9 +217,16 @@ struct SettingsView: View {
                 }
             }
 
-            Button("Apply Hardware Settings") {
+            Button {
                 Task { await applyHardware() }
+            } label: {
+                Label(
+                    hasUnsavedHardware ? "Apply Hardware Settings" : "Hardware Settings Applied",
+                    systemImage: hasUnsavedHardware ? "exclamationmark.circle.fill" : "checkmark.circle.fill"
+                )
             }
+            .foregroundStyle(hasUnsavedHardware ? .red : .green)
+            .disabled(!hasUnsavedHardware)
         } header: {
             Text("Hardware")
         } footer: {
@@ -197,10 +269,16 @@ struct SettingsView: View {
             currency = cfg.currencyType
             tempScale = cfg.tempScale
         }
+        savedKwhRate = kwhRate
+        savedCurrency = currency
+        savedTempScale = tempScale
         if let pid = client.fullConfig?.pid {
             kp = pid["kp"]?.numberValue ?? 3
             ki = pid["ki"]?.numberValue ?? 75
             kd = pid["kd"]?.numberValue ?? 12
+            savedKp = kp
+            savedKi = ki
+            savedKd = kd
         }
         if let hw = client.fullConfig?.hardware {
             sensorType = hw["sensor_type"]?.stringValue ?? "MAX31856"
@@ -216,6 +294,11 @@ struct SettingsView: View {
             "display.temp_scale": tempScale,
         ])
         feedback = ok ? "Saved · \(msg)" : msg
+        if ok {
+            savedKwhRate = kwhRate
+            savedCurrency = currency
+            savedTempScale = tempScale
+        }
     }
 
     private func applyPID() async {
@@ -223,6 +306,11 @@ struct SettingsView: View {
             "pid.kp": kp, "pid.ki": ki, "pid.kd": kd,
         ])
         feedback = ok ? "Saved · \(msg)" : msg
+        if ok {
+            savedKp = kp
+            savedKi = ki
+            savedKd = kd
+        }
     }
 
     private func applyHardware() async {

@@ -46,8 +46,12 @@ class HardwareController:
     # ------------------------------------------------------------------
 
     def update_lid_state(self):
-        """Read the lid switch GPIO pin. Returns True if lid is open."""
-        if _HAS_GPIO:
+        """Read the lid switch GPIO pin. Returns True if lid is open.
+        If no lid switch is installed (hardware.lid_switch_enabled = false),
+        the lid is always reported closed."""
+        if not config.lid_switch_enabled:
+            self.lid_open = False
+        elif _HAS_GPIO:
             self.lid_open = GPIO.input(self.pin_lid_switch) == GPIO.LOW
         else:
             self.lid_open = False

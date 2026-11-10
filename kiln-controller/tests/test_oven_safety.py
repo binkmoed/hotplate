@@ -45,10 +45,17 @@ check("F1: zero error -> 0% duty", pid.compute(100, 100) == 0.0)
 check("F1: positive err -> bounded duty", 0 < pid.compute(500, 20) <= 1.0)
 pid.reset()
 prev_i = 0
-pid.compute(200, 100)
-for _ in range(10): pid.compute(200, 100)
+# Small error so the output is NOT saturated — the integrator must run.
+# (With anti-windup, a saturating error correctly freezes the i-term.)
+pid.compute(110, 100)
+for _ in range(10): pid.compute(110, 100)
 s = pid.get_stats()
 check("F2: integral grows with ki gain", s['i'] > 0 and s['p'] > 0, f"i={s['i']:.2f}")
+pid2 = PID(5.6, 72, 18)
+pid2.compute(300, 100)
+for _ in range(10): pid2.compute(300, 100)
+s2 = pid2.get_stats()
+check("F2b: anti-windup freezes i-term when saturated", s2['i'] == 0.0, f"i={s2['i']:.2f}")
 
 # --- Fix 4: consecutive read failures abort ---
 hw, sn = FakeHardware(), FakeSensor(fail=True)
