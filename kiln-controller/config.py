@@ -252,6 +252,13 @@ class Config:
         return self.get("pid", "stall_window", default=600.0)
 
     @property
+    def stall_action(self):
+        """What to do on a detected heating stall: 'abort' cuts power via the
+        safety relay (safe default — a stuck-low thermocouple drives the
+        elements at 100% uncontrolled), 'warn' only logs/alerts."""
+        return self.get("pid", "stall_action", default="abort")
+
+    @property
     def duty_cycle(self):
         return self.get("pid", "duty_cycle", default=3.0)
 

@@ -405,15 +405,21 @@ class Oven(threading.Thread):
             return
         if self.current_temp < start_temp + 2.0:
             elapsed = int(now - started_at)
-            self._stall_alerted = True
             detail = (f"full power for {elapsed}s but temperature rose only "
                       f"{self.current_temp - start_temp:.1f}° — element, SSR or "
                       f"thermocouple suspect")
+            self._stall_alerted = True
             self.raise_session_event('heating_stalled', detail)
             if self.alert_manager:
                 self.alert_manager.send_alert(
                     'HEATING_STALLED',
                     f"Kiln not heating: {detail}", 'warning')
+            if config.stall_action == 'abort':
+                # A stuck-low thermocouple looks identical to a dead element
+                # and would drive the elements at 100% uncontrolled — the
+                # over-temperature check uses the same sensor, so it would
+                # never trip. Cut power for safety.
+                self.abort_run(f"heating stalled: {detail}")
 
     def _complete_firing(self):
         profile_name = self.profile.name if self.profile else "Unknown"
