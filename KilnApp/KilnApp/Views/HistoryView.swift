@@ -266,6 +266,9 @@ struct SessionDetailView: View {
         case "abort": return "xmark.octagon"
         case "heating_stalled": return "exclamationmark.triangle"
         case "sensor_retry": return "thermometer.medium"
+        case "catch_up_engaged": return "hourglass"
+        case "catch_up_released": return "hourglass.bottomhalf.filled"
+        case "catch_up_stalled": return "tortoise"
         default: return "exclamationmark.triangle"
         }
     }
@@ -276,9 +279,11 @@ struct SessionDetailView: View {
     private func iconColor(_ name: String) -> Color {
         switch name {
         case "run", "resume", "pause", "sensor_retry": return .secondary
+        case "catch_up_engaged", "catch_up_released": return .secondary
         case "completed": return .green
         case "abort": return .red
         case "heating_stalled": return .orange
+        case "catch_up_stalled": return .orange
         default: return .orange
         }
     }

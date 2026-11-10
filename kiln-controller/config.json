@@ -18,7 +18,8 @@
     "max_ssr_on_time": 6.0,
     "duty_cycle": 3.0,
     "max_ssr_on_percentage": 90.0,
-    "temp_settle_time": 0.5
+    "temp_settle_time": 0.5,
+    "catch_up_stalled_minutes": 15
   },
   "safety": {
     "emergency_shutoff_temp": 1300.0,
@@ -32,7 +33,7 @@
     "time_scale_slope": "h",
     "time_scale_profile": "m",
     "kwh_rate": 0.25,
-    "currency_type": "\u20ac"
+    "currency_type": "€"
   },
   "restart": {
     "automatic_restarts": true,
