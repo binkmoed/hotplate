@@ -54,6 +54,18 @@ struct DashboardView: View {
             } message: {
                 Text("This will abort the current firing and return the kiln to idle. The elements will be de-energised.")
             }
+            .alert("Firing Complete", isPresented: Binding(
+                get: { client.completedFiring != nil },
+                set: { if !$0 { client.acknowledgeCompletedFiring() } }
+            )) {
+                Button("OK") { client.acknowledgeCompletedFiring() }
+            } message: {
+                if let firing = client.completedFiring {
+                    Text("\(firing.profile?.name ?? "The firing")" + " finished successfully" + summaryText(firing))
+                } else {
+                    Text("")
+                }
+            }
         }
     }
 
@@ -220,6 +232,17 @@ struct DashboardView: View {
     }
 
     // MARK: - Helpers
+
+    private func summaryText(_ firing: SessionSummary) -> String {
+        var parts: [String] = []
+        if let peak = firing.peakTemperature {
+            parts.append("peak \(Int(peak.rounded()))°")
+        }
+        if let runtime = firing.runtime {
+            parts.append("took \(Format.clock(runtime))")
+        }
+        return parts.isEmpty ? "." : " — " + parts.joined(separator: ", ") + "."
+    }
 
     private var stateIcon: String {
         switch client.currentState {

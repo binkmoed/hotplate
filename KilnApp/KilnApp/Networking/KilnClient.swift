@@ -71,6 +71,12 @@ final class KilnClient: WebSocketServiceDelegate {
     /// Last server-side error from a REST command (cleared on next success).
     private(set) var lastCommandError: String?
 
+    /// Set when a firing finishes on its own (runs to completion). The dashboard
+    /// shows an acknowledgement alert until the user dismisses it.
+    private(set) var completedFiring: SessionSummary?
+
+    func acknowledgeCompletedFiring() { completedFiring = nil }
+
     // MARK: Internals
 
     private let session: URLSession
@@ -285,8 +291,10 @@ final class KilnClient: WebSocketServiceDelegate {
             // firing state so stale values don't bleed into the next firing.
             if status.state == .idle {
                 if wasActive {
+                    firingTransitionTime = Date()
                     self.history.removeAll()
                     self.status = nil
+                    self.checkForCompletedFiring()
                 }
                 self.firingStartOffset = 0
                 self.handleStateNotifications(status.state)
@@ -324,6 +332,37 @@ final class KilnClient: WebSocketServiceDelegate {
 
     nonisolated func webSocketSocket(_ path: String, didChangeConnected connected: Bool) {
         Task { @MainActor in self.socketState[path] = connected }
+    }
+
+    // MARK: - Completion detection
+
+    /// After the kiln goes idle, poll the session list briefly: the watcher
+    /// writes the 'end' record on its next duty cycle, so the outcome may not
+    /// be visible immediately. Only a 'completed' outcome raises the alert —
+    /// a user-initiated Stop shows as 'aborted' and is not celebrated.
+    private func checkForCompletedFiring() {
+        guard let rest else { return }
+        let transition = firingTransitionTime
+        Task {
+            for _ in 0..<6 {
+                if Task.isCancelled { return }
+                if let sessions = try? await rest.getSessions(),
+                   let latest = sessions.first,
+                   latest.outcome == "completed",
+                   let started = latest.started,
+                   started > transition.timeIntervalSince1970 - 5 {
+                    self.completedFiring = latest
+                    return
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    /// Wall-clock time of the last active→idle transition.
+    private var firingTransitionTime: Date {
+        get { UserDefaults.standard.object(forKey: "kiln.firingTransition") as? Date ?? .distantPast }
+        set { UserDefaults.standard.set(newValue, forKey: "kiln.firingTransition") }
     }
 
     // MARK: - Outbound via WS
