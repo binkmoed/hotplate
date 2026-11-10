@@ -62,13 +62,17 @@ class OvenWatcher(threading.Thread):
             elif cur == 'PAUSED':
                 self.session_logger.event('pause')
             elif prev in ('RUNNING', 'PAUSED'):
-                # Completed if the profile ran to its end, else aborted.
-                # (The oven resets runtime once idle, so use the last
-                # sample we logged before the transition.)
-                runtime = self._last_sample.get('runtime') or 0
-                total = self._last_sample.get('totaltime') or 0
-                outcome = 'completed' if total and runtime >= total else 'aborted'
+                # Trust the oven's explicit outcome (set at the moment of
+                # transition) rather than guessing from the last sample —
+                # completion happens between broadcasts, so the last sample
+                # almost always shows runtime < totaltime.
+                outcome = getattr(self.oven, 'session_outcome', None)
+                if outcome is None:
+                    runtime = self._last_sample.get('runtime') or 0
+                    total = self._last_sample.get('totaltime') or 0
+                    outcome = 'completed' if total and runtime >= total else 'aborted'
                 self.session_logger.stop(outcome)
+                self.oven.clear_session_outcome()
         self._last_state = state
 
     def run(self):

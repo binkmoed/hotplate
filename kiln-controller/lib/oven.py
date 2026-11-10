@@ -191,6 +191,11 @@ class Oven(threading.Thread):
         self.last_temp_for_heat_rate = None
         self.last_time_for_heat_rate = None
 
+        # Outcome of the most recent firing session ('completed'/'aborted').
+        # Set at the moment of transition so the watcher doesn't have to
+        # guess from the last broadcast sample.
+        self.session_outcome = None
+
         self.lock = threading.Lock()
 
     # ------------------------------------------------------------------
@@ -347,6 +352,7 @@ class Oven(threading.Thread):
         profile_name = self.profile.name if self.profile else "Unknown"
         duration = self.runtime
         cost = self.cost
+        self.session_outcome = 'completed'
         self.abort_run()
         if self.alert_manager:
             self.alert_manager.alert_firing_complete(profile_name, duration, cost)
@@ -396,6 +402,8 @@ class Oven(threading.Thread):
             self.abort_run()
 
     def abort_run(self):
+        if self.session_outcome is None:
+            self.session_outcome = 'aborted'
         self.state = 'IDLE'
         self.profile = None
         self.start_time = None
@@ -408,6 +416,10 @@ class Oven(threading.Thread):
         self.catching_up = False
         self.pid.reset()
         self.hardware.disable_safety_relay()
+
+    def clear_session_outcome(self):
+        """Called by the watcher after it has consumed the outcome."""
+        self.session_outcome = None
 
     def adjust_start_time(self):
         self.start_time = time.time() - self.runtime
