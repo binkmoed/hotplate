@@ -5,7 +5,7 @@
     "sensor_type": "MAX31856",
     "thermocouple_type_max31856": "K",
     "thermocouple_type_max31855": "K",
-    "pin_ssr": 18,
+    "pin_ssr": 22,
     "pin_safety_relay": 23,
     "pin_lid_switch": 24,
     "kw_elements": 7.1,
@@ -19,8 +19,7 @@
     "max_ssr_on_time": 6.0,
     "duty_cycle": 3.0,
     "max_ssr_on_percentage": 90.0,
-    "temp_settle_time": 0.5,
-    "catch_up_stalled_minutes": 15
+    "temp_settle_time": 0.5
   },
   "safety": {
     "emergency_shutoff_temp": 1300.0,

@@ -241,12 +241,6 @@ class Config:
         return self.get("pid", "approach_max_output", default=40.0)
 
     @property
-    def catch_up_stalled_minutes(self):
-        """Minutes of continuous catch-up before the advisory
-        catch_up_stalled event fires. 0 disables."""
-        return self.get("pid", "catch_up_stalled_minutes", default=15)
-
-    @property
     def max_ssr_on_time(self):
         return self.get("pid", "max_ssr_on_time", default=6.0)
 

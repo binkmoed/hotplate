@@ -32,12 +32,6 @@ struct DashboardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    if client.status?.catchingUp == true && client.currentState == .running {
-                        Label("Catching up", systemImage: "hourglass")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .help("The kiln is behind the schedule; the profile clock is paused until it catches up")
-                    }
                     if !client.isConnected {
                         Label("Offline", systemImage: "wifi.slash")
                             .foregroundStyle(.red)

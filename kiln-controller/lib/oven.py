@@ -187,8 +187,6 @@ class Oven(threading.Thread):
         self.heat = 0.0
         self.heat_rate = 0.0
         self.catching_up = False
-        self._catch_up_since = None
-        self._catch_up_alerted = False
 
         self.last_temp_for_heat_rate = None
         self.last_time_for_heat_rate = None
@@ -463,8 +461,6 @@ class Oven(threading.Thread):
             self.runtime = startat
             self.cost = 0.0
             self.catching_up = False
-            self._catch_up_since = None
-            self._catch_up_alerted = False
             self.pid.reset()
             self._stall_start = None
             self._stall_alerted = False
@@ -511,8 +507,6 @@ class Oven(threading.Thread):
         self.heat = 0.0
         self.heat_rate = 0.0
         self.catching_up = False
-        self._catch_up_since = None
-        self._catch_up_alerted = False
         self.pid.reset()
         self.hardware.disable_safety_relay()
 
@@ -531,43 +525,11 @@ class Oven(threading.Thread):
         if not self.profile or self.state != 'RUNNING':
             return
         window = config.pid_control_window
-        was_catching_up = self.catching_up
         if abs(self.current_temp - self.target_temp) > window:
             self.catching_up = True
             self.adjust_start_time()
         else:
             self.catching_up = False
-            self._catch_up_since = None
-            self._catch_up_alerted = False
-
-        # Transition events — one each time catch-up engages or releases,
-        # so the history explains why a firing outlasted its profile.
-        if self.catching_up and not was_catching_up:
-            self.raise_session_event(
-                'catch_up_engaged',
-                f"{self.current_temp:.0f}°C vs target {self.target_temp:.0f}°C, "
-                f"window {window:.0f}°C — schedule paused until the kiln catches up")
-            self._catch_up_since = time.time()
-            self._catch_up_alerted = False
-        elif not self.catching_up and was_catching_up:
-            self.raise_session_event('catch_up_released',
-                                     'kiln back within the window — schedule resumed')
-            self._catch_up_since = None
-            self._catch_up_alerted = False
-
-        # Advisory: the kiln is alive but has failed to keep up with the
-        # profile for a long stretch (too-steep ramp, tired elements…).
-        # Not a safety abort — the heating-stall detector covers dead
-        # hardware — just a one-shot heads-up in the log.
-        if self.catching_up and self._catch_up_since is not None:
-            stalled_min = config.catch_up_stalled_minutes
-            if stalled_min > 0 and not self._catch_up_alerted \
-                    and time.time() - self._catch_up_since >= stalled_min * 60:
-                self._catch_up_alerted = True
-                self.raise_session_event(
-                    'catch_up_stalled',
-                    f"kiln behind schedule for {stalled_min:.0f} min — "
-                    "profile may be too fast for this kiln")
 
     def update_runtime(self):
         if self.state == 'RUNNING':
