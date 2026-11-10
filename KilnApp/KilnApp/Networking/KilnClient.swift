@@ -249,8 +249,12 @@ final class KilnClient: WebSocketServiceDelegate {
             // Apply the firing-start offset so actual lines up with schedule.
             if let log = message.log, !log.isEmpty {
                 let offset = self.firingStartOffset
+                // Only seed from RUNNING/PAUSED frames: an IDLE frame after a
+                // stop/abort carries runtime=0 + current temperature, which
+                // would draw a vertical line at x=0 up to the current temp.
                 self.history = log.compactMap { s in
-                    guard let t = s.runtime, let temp = s.temperature else { return nil }
+                    guard s.state == .running || s.state == .paused,
+                          let t = s.runtime, let temp = s.temperature else { return nil }
                     return ChartSample(runtime: t + offset, temperature: temp, target: s.target ?? 0)
                 }
                 self.status = log.last
