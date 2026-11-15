@@ -73,10 +73,21 @@ final class NotificationManager: @unchecked Sendable {
         switch kind {
         case .completed:
             generator.notificationOccurred(.success)
-            AudioServicesPlaySystemSound(1057)   // bright timer ping
+            // 3× timer ping via the *alert* path: louder (alert volume) and
+            // audible even with the ring/silent switch on silent.
+            playAlertChain(ids: [1057, 1057, 1057])
         case .aborted:
             generator.notificationOccurred(.error)
-            AudioServicesPlaySystemSound(1053)   // low error tone
+            AudioServicesPlayAlertSound(1053)   // low error tone
+        }
+    }
+
+    /// Play system alert sounds one after another (~1s apart is built into
+    /// each sound's natural length; gaps keep them from blending together).
+    private func playAlertChain(ids: [SystemSoundID], index: Int = 0) {
+        guard index < ids.count else { return }
+        AudioServicesPlayAlertSoundWithCompletion(ids[index]) { [weak self] in
+            self?.playAlertChain(ids: ids, index: index + 1)
         }
     }
 
