@@ -4,4 +4,3 @@ gevent-websocket==0.10.1
 RPi.GPIO==0.7.1
 adafruit-circuitpython-max31855==1.2.19
 adafruit-circuitpython-max31856==1.4.12
-smtplib-ssl==1.0.0
