@@ -180,8 +180,6 @@ struct DashboardView: View {
         return HStack(spacing: 0) {
             statTile(title: "Heat", value: heatText(status?.heat, pidOut: status?.pidstats?.out, state: status?.state))
             Divider().frame(height: 40)
-            statTile(title: "Deg/h", value: Format.slope(status?.heatRate))
-            Divider().frame(height: 40)
             statTile(title: "Cost", value: Format.cost(status?.cost, currency: cfg.currencyType, rate: cfg.kwhRate))
         }
         .padding(.vertical, 12)

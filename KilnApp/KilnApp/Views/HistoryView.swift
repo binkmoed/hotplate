@@ -202,9 +202,30 @@ struct SessionDetailView: View {
             statTile("Cost", session.cost.map { String(format: "%.2f%@", $0, currency) } ?? "—")
             Divider().frame(height: 40)
             statTile("Samples", "\(log.samples.count)")
+            Divider().frame(height: 40)
+            pidTile(log)
         }
         .padding(.vertical, 12)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// Shows the PID gains used during the firing. Each logged sample
+    /// carries them, so mid-firing tuning changes are visible here.
+    private func pidTile(_ log: SessionLog) -> some View {
+        let sets = Set(log.samples.compactMap { s in
+            s.pidstats.flatMap { p in
+                [p.kp, p.ki, p.kd].allSatisfy { $0 != nil }
+                    ? String(format: "%.1f/%.0f/%.1f", p.kp!, p.ki!, p.kd!) : nil
+            }
+        }).sorted()
+        let value = sets.last ?? "—"
+        let caption = sets.count > 1 ? "varied ×\(sets.count)" : "kp/ki/kd"
+        return VStack(spacing: 4) {
+            Text("PID").font(.caption2).bold().foregroundStyle(.secondary)
+            Text(value).font(.caption.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+            Text(caption).font(.caption2).foregroundStyle(sets.count > 1 ? Color.orange : Color.secondary.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func statTile(_ title: String, _ value: String) -> some View {

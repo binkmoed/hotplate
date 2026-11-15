@@ -37,6 +37,7 @@ struct SettingsView: View {
                 displaySection
                 pidSection
                 hardwareSection
+                settingsGuide
                 aboutSection
             }
             .navigationTitle("Settings")
@@ -188,7 +189,7 @@ struct SettingsView: View {
         } header: {
             Text("PID Tuning")
         } footer: {
-            Text("All values hot-reload. Control window = degrees from target within which the schedule time runs free; duty cycle = length of one SSR on/off cycle. Very short duty cycles wear the SSR and relay.")
+            Text("All values hot-reload. Control window = degrees from target within which the schedule time runs free; duty cycle = length of one SSR on/off cycle. Output is proportional: PID output 0–100 maps linearly to SSR duty 0–100%. Very short duty cycles wear the SSR and relay.")
         }
     }
 
@@ -203,7 +204,37 @@ struct SettingsView: View {
             }
         } header: {
             Text("About")
+        } footer: {
+            Text("See “Settings Guide” above for what each setting does.")
         }
+    }
+
+    /// Plain-language explanation of every setting and how it affects the kiln.
+    private var settingsGuide: some View {
+        Section {
+            guideRow("Kp", "Proportional gain. How strongly the controller reacts to the gap between actual and target temperature. Too low: sluggish, undershoots. Too high: temperature oscillates around the target.")
+            guideRow("Ki", "Integral gain. Corrects a persistent small offset (e.g. always 5° below target) by accumulating past error. Too high: overshoot after long ramps.")
+            guideRow("Kd", "Derivative gain. Dampens the reaction when temperature is moving fast, reducing overshoot at the top of a ramp. Mostly useful on fast, light loads.")
+            guideRow("Control window", "Degrees around the target within which the schedule clock runs free even if the kiln lags behind. Bigger = firing stays on schedule despite slow heating; smaller = schedule waits for the kiln to actually reach temperature.")
+            guideRow("Duty cycle", "Length of one SSR on/off cycle. The PID output decides what fraction of each cycle the elements are on. Short = finer control but more relay switching; long = coarser but gentler on hardware.")
+            guideRow("Currency · kWh rate", "Used only to display an estimated electricity cost of each firing. No effect on control.")
+            guideRow("Element power", "Kiln's power draw in kW. Feeds the cost estimate; no effect on control.")
+            guideRow("Sensor · thermocouple", "Which sensor board and thermocouple type the Pi reads. Must match your hardware or temperatures will be wrong. Changing it requires a server restart.")
+            guideRow("Restart Server", "Applies pending config changes that need a fresh start (like the sensor choice). Refuses to run while a firing is active, so a firing is never interrupted.")
+            guideRow("History · PID tile", "Each recorded firing stores the PID gains in use at every moment. The tile shows the gains (kp/ki/kd); “varied” means you tuned mid-firing — handy for comparing curves.")
+        } header: {
+            Text("Settings Guide")
+        } footer: {
+            Text("PID gains, control window and duty cycle all hot-reload: they apply from the next duty cycle, even mid-firing, without restarting.")
+        }
+    }
+
+    private func guideRow(_ title: String, _ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.subheadline.bold())
+            Text(text).font(.footnote).foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
     }
 
     /// True when the sensor board / thermocouple pickers no longer match the

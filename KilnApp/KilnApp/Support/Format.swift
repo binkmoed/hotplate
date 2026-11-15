@@ -34,11 +34,6 @@ enum Format {
             : String(format: "%d:%02d", m, sec)
     }
 
-    static func slope(_ degPerHour: Double?) -> String {
-        guard let degPerHour, degPerHour != 0 else { return "0°" }
-        return String(format: "%+.0f°", degPerHour)
-    }
-
     static func cost(_ value: Double?, currency: String, rate: Double?) -> String {
         guard let value else { return String(format: "%@0.00", currency) }
         return String(format: "%@%.2f", currency, value)
