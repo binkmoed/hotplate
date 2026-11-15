@@ -281,7 +281,9 @@ class Oven(threading.Thread):
 
         consecutive_failures = getattr(self, '_consecutive_read_failures', 0)
         try:
-            current_temp = self.temp_sensor.safe_read()
+            # settle already happened above (EMI-safe sequence) — pass 0
+            # so safe_read doesn't sleep a second time.
+            current_temp = self.temp_sensor.safe_read(settle_time=0)
             consecutive_failures = 0
         except RuntimeError as e:
             print(f"Temperature read failed: {e}")

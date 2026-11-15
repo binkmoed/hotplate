@@ -27,6 +27,23 @@ and controls firings over the local network.
 - 📖 **User manual**: [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md) — end-user guide to running firings.
 - 🔌 **API reference**: [`api.md`](api.md) — REST routes, WebSocket channels, data models.
 
+## What's new (Nov 2026)
+
+- **In-app server restart** — `POST /api/system/restart` + *Restart Server*
+  button in the app (Settings → Server) with running/restarting/stopped
+  status. Needs the sudoers rule in [`kiln-controller/deploy/README.md`](kiln-controller/deploy/README.md).
+- **Full-length charts** — live dashboard and history now show the entire
+  firing curve (the old client capped at one hour of samples); the server
+  refuses to log non-monotonic samples that truncated history charts.
+- **Settings hot-reload** — kp/ki/kd, control window and duty cycle apply
+  to a running firing on the next duty cycle; no restart, no schedule reset.
+  Duty cycle is validated to a minimum of `temp_settle_time + 1s`.
+- **Single profile prompt** — the Start Firing sheet confirms the profile
+  chosen on the dashboard instead of asking again.
+- **Crash fix** — auto-restart after an unclean shutdown no longer fails
+  starting the watcher thread twice; each duty cycle no longer wastes a
+  duplicate temperature-settle sleep.
+
 ## Quick start (controller)
 
 ```bash

@@ -535,7 +535,10 @@ class KilnController:
 
     def start(self):
         self.oven.start()
-        self.watcher.start()
+        # Guard: auto-restart may have started the watcher already —
+        # Thread.start() raises RuntimeError on a second call.
+        if not self.watcher.is_alive():
+            self.watcher.start()
         print("Oven and watcher threads started")
 
         print(f"Starting server on {config.host}:{config.port}")

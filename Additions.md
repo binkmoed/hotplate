@@ -1,8 +1,0 @@
-- Use adafruit Max31856 and Max31855 drivers
-- Make all configurable options possible from the IOS front-end settings. (Unit of temperature, pins, currency, kw hour price, kiln heating capacity in kw, duty cycle, alerting email-address, sms recipient etc.)
-- Only allow the temperature readings to take place in the quiet time (when SSR is off) due to EMI generated at 900C+. temperatures which during testing causes massive temperature fluctuations.
-- Add passcode to IOS app to prevent unauthorized access ( prevent children from activationg the kiln ).
-- feasibility study for implementation on esp32 m5stack core instead of Raspberry pi.
-- when starting a firing schedule take the ambient temperature as the starting point on the graph.
-- Various bug fixes.
-- profile save bug.
