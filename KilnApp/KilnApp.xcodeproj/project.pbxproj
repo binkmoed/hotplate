@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AA11E5011111111111110001 /* Submarine.aiff in Resources */ = {isa = PBXBuildFile; fileRef = AA11E5011111111111110002 /* Submarine.aiff */; };
 		2777E1A7F43BD2127EC7ADDF /* ConnectionSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F421B0D85578C981830AEF8E /* ConnectionSetupView.swift */; };
 		2A560804E25777FF9024047D /* SessionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5748AB829568BB076E8E13BE /* SessionModels.swift */; };
 		376D93C89B519CAAD4508FDA /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEEE359AA89FBDFAECA2ECA8 /* MainTabView.swift */; };
@@ -33,6 +34,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AA11E5011111111111110002 /* Submarine.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; path = Submarine.aiff; sourceTree = "<group>"; };
 		0C3E1AF41847C030A52647D3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		26407DB906C14E4F05299898 /* KilnClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnClient.swift; sourceTree = "<group>"; };
 		2FEED8C9C341ACE6A456A5C5 /* KilnStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KilnStatus.swift; sourceTree = "<group>"; };
@@ -89,6 +91,7 @@
 				BC72C5661FC14E96649E0024 /* Format.swift */,
 				F957A3F008ADD3EE52DF9595 /* Logger.swift */,
 				60B02A2C3C99AC039E7A700F /* NotificationManager.swift */,
+				AA11E5011111111111110002 /* Submarine.aiff */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -215,6 +218,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F5D5ABCFDDEC47EF178657B7 /* Assets.xcassets in Resources */,
+				AA11E5011111111111110001 /* Submarine.aiff in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

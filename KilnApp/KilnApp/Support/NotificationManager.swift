@@ -73,9 +73,13 @@ final class NotificationManager: @unchecked Sendable {
         switch kind {
         case .completed:
             generator.notificationOccurred(.success)
-            // 3× timer ping via the *alert* path: louder (alert volume) and
+            // 3× Submarine via the *alert* path: louder (alert volume) and
             // audible even with the ring/silent switch on silent.
-            playAlertChain(ids: [1057, 1057, 1057])
+            if submarineSound != 0 {
+                playAlertChain(ids: [submarineSound, submarineSound, submarineSound])
+            } else {
+                AudioServicesPlayAlertSound(1057)
+            }
         case .aborted:
             generator.notificationOccurred(.error)
             AudioServicesPlayAlertSound(1053)   // low error tone
@@ -87,11 +91,23 @@ final class NotificationManager: @unchecked Sendable {
     private func playAlertChain(ids: [SystemSoundID], index: Int = 0) {
         guard index < ids.count else { return }
         AudioServicesPlayAlertSoundWithCompletion(ids[index]) { [weak self] in
-            self?.playAlertChain(ids: ids, index: index + 1)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                self?.playAlertChain(ids: ids, index: index + 1)
+            }
         }
     }
 
     enum FiringAlertKind { case completed, aborted }
+
+    /// The bundled Submarine.aiff — created once, reused for every alert.
+    private lazy var submarineSound: SystemSoundID = {
+        guard let url = Bundle.main.url(forResource: "Submarine", withExtension: "aiff") else {
+            return 0
+        }
+        var id: SystemSoundID = 0
+        AudioServicesCreateSystemSoundID(url as CFURL, &id)
+        return id
+    }()
 
     private func profileText(_ s: KilnStatus) -> String {
         let name = s.profile ?? "Profile"
