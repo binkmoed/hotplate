@@ -175,7 +175,7 @@ struct SettingsView: View {
             sliderRow(title: "Kp", value: $kp, range: 0...20, step: 0.1, format: "%.1f")
             sliderRow(title: "Ki", value: $ki, range: 0...300, step: 1, format: "%.0f")
             sliderRow(title: "Kd", value: $kd, range: 0...100, step: 0.5, format: "%.1f")
-            sliderRow(title: "Control-Window", value: $controlWindow, range: 0...200, step: 5, format: "%.0f°")
+            sliderRow(title: "CTRL-WIN", value: $controlWindow, range: 0...200, step: 5, format: "%.0f°")
             sliderRow(title: "Duty", value: $dutyCycle, range: 2...10, step: 0.5, format: "%.1fs")
             Button {
                 Task { await applyPID() }
