@@ -222,10 +222,9 @@ struct SettingsView: View {
             guideRow("History · PID tile", "Each recorded firing stores the PID gains in use at every moment. The tile shows the gains (kp/ki/kd); “varied” means you tuned mid-firing — handy for comparing curves.")
             guideRow("Sensor · thermocouple", "Which sensor board and thermocouple type the Pi reads. Must match your hardware or temperatures will be wrong. Changing it requires a server restart.")
             guideRow("Restart Server", "Applies pending config changes that need a fresh start (like the sensor choice). Refuses to run while a firing is active, so a firing is never interrupted.")
+            guideRow("Hot-reload", "PID gains, control window and duty cycle apply from the next duty cycle, even mid-firing, without restarting the server.")
         } header: {
             Text("Settings Guide")
-        } footer: {
-            Text("PID gains, control window and duty cycle all hot-reload: they apply from the next duty cycle, even mid-firing, without restarting.")
         }
     }
 
