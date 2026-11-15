@@ -73,7 +73,8 @@ class Config:
                 "thermocouple_type_max31855": "K",
                 "ac_frequency": 50,
                 "pin_ssr": 23,
-                "pin_safety_relay": 18,
+                "pin_safety_relay": 25,
+                "pin_status_led": 18,
                 "pin_lid_switch": 24,
                 "kw_elements": 7.1,
             },
@@ -199,9 +200,14 @@ class Config:
 
     @property
     def pin_safety_relay(self):
-        # No physical safety relay: BCM18 drives the board status LED,
-        # used as the 'armed' indicator.
-        return self.get("hardware", "pin_safety_relay", default=18)
+        # No physical safety relay exists; this drives an unconnected pin
+        # and exists so the arm/disarm lifecycle stays intact.
+        return self.get("hardware", "pin_safety_relay", default=25)
+
+    @property
+    def pin_status_led(self):
+        """Pi-alive LED, lit from controller start until power-off."""
+        return self.get("hardware", "pin_status_led", default=18)
 
     @property
     def pin_lid_switch(self):

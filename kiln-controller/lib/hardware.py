@@ -23,6 +23,7 @@ class HardwareController:
         self.pin_ssr = config.pin_ssr
         self.pin_safety_relay = config.pin_safety_relay
         self.pin_lid_switch = config.pin_lid_switch
+        self.pin_status_led = config.pin_status_led
 
         self.ssr_on = False
         self.safety_relay_on = False
@@ -38,6 +39,12 @@ class HardwareController:
                        pull_up_down=GPIO.PUD_UP)
             GPIO.output(self.pin_ssr, GPIO.LOW)
             GPIO.output(self.pin_safety_relay, GPIO.LOW)
+            # Status LED: ON for as long as the controller is running.
+            # Pure Pi-alive indicator — never toggled afterwards. (config.txt
+            # lights it at boot via gpio=18=op,dh; we keep it lit.)
+            if self.pin_status_led is not None:
+                GPIO.setup(self.pin_status_led, GPIO.OUT)
+                GPIO.output(self.pin_status_led, GPIO.HIGH)
 
         self.update_lid_state()
 
@@ -149,6 +156,7 @@ class HardwareController:
     def cleanup(self):
         self.disable_ssr()
         self.disable_safety_relay()
-        if _HAS_GPIO:
-            GPIO.cleanup()
+        # No GPIO.cleanup(): it would reset the status LED pin (and every
+        # other pin). We've already forced SSR/relay LOW explicitly above; the
+        # status LED stays lit with its last state until the Pi loses power.
         print("Hardware cleaned up")

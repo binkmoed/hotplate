@@ -6,10 +6,11 @@
     "thermocouple_type_max31856": "K",
     "thermocouple_type_max31855": "K",
     "pin_ssr": 23,
-    "pin_safety_relay": 18,
+    "pin_safety_relay": 25,
     "pin_lid_switch": 24,
     "kw_elements": 7.1,
-    "lid_switch_enabled": false
+    "lid_switch_enabled": false,
+    "pin_status_led": 18
   },
   "pid": {
     "kp": 3.0,
