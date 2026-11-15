@@ -11,6 +11,8 @@ struct SettingsView: View {
     @State private var kp: Double = 3
     @State private var ki: Double = 75
     @State private var kd: Double = 12
+    @State private var controlWindow: Double = 50
+    @State private var dutyCycle: Double = 3
     @State private var sensorType: String = "MAX31856"
     @State private var thermocouple: String = "K"
     @State private var feedback: String?
@@ -19,6 +21,8 @@ struct SettingsView: View {
     @State private var savedKp: Double = 3
     @State private var savedKi: Double = 75
     @State private var savedKd: Double = 12
+    @State private var savedControlWindow: Double = 50
+    @State private var savedDutyCycle: Double = 3
 
     /// Thermocouple types supported by each sensor board, per the controller docs.
     private let supportedTC: [String: [String]] = [
@@ -140,7 +144,6 @@ struct SettingsView: View {
                 )
             }
             .foregroundStyle(hasUnsavedDisplay ? .red : .green)
-            .disabled(!hasUnsavedDisplay)
         } header: {
             Text("Display")
         } footer: {
@@ -156,6 +159,7 @@ struct SettingsView: View {
     /// True when the sliders no longer match the gains saved on the server.
     private var hasUnsavedPIDGains: Bool {
         kp != savedKp || ki != savedKi || kd != savedKd
+            || controlWindow != savedControlWindow || dutyCycle != savedDutyCycle
     }
 
     private var pidSection: some View {
@@ -170,6 +174,8 @@ struct SettingsView: View {
             sliderRow(title: "Kp", value: $kp, range: 0...20, step: 0.1, format: "%.1f")
             sliderRow(title: "Ki", value: $ki, range: 0...300, step: 1, format: "%.0f")
             sliderRow(title: "Kd", value: $kd, range: 0...100, step: 0.5, format: "%.1f")
+            sliderRow(title: "Ctl win", value: $controlWindow, range: 0...200, step: 5, format: "%.0f°")
+            sliderRow(title: "Duty", value: $dutyCycle, range: 1...10, step: 0.5, format: "%.1fs")
             Button {
                 Task { await applyPID() }
             } label: {
@@ -179,17 +185,10 @@ struct SettingsView: View {
                 )
             }
             .foregroundStyle(hasUnsavedPIDGains ? .red : .green)
-            .disabled(!hasUnsavedPIDGains)
-            if let full = client.fullConfig, let pid = full.pid {
-                let window = pid["control_window"]?.numberValue ?? 50
-                LabeledContent("Control window", value: "\(Int(window))°")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
         } header: {
             Text("PID Tuning")
         } footer: {
-            Text("Kp/Ki/Kd hot-reload. Control window, duty cycle and SSR timing require a server restart.")
+            Text("All values hot-reload. Control window = degrees from target within which the schedule time runs free; duty cycle = length of one SSR on/off cycle. Very short duty cycles wear the SSR and relay.")
         }
     }
 
@@ -252,7 +251,6 @@ struct SettingsView: View {
                 )
             }
             .foregroundStyle(hasUnsavedHardware ? .red : .green)
-            .disabled(!hasUnsavedHardware)
         } header: {
             Text("Hardware")
         } footer: {
@@ -302,9 +300,13 @@ struct SettingsView: View {
             kp = pid["kp"]?.numberValue ?? 3
             ki = pid["ki"]?.numberValue ?? 75
             kd = pid["kd"]?.numberValue ?? 12
+            controlWindow = pid["control_window"]?.numberValue ?? 50
+            dutyCycle = pid["duty_cycle"]?.numberValue ?? 3
             savedKp = kp
             savedKi = ki
             savedKd = kd
+            savedControlWindow = controlWindow
+            savedDutyCycle = dutyCycle
         }
         if let hw = client.fullConfig?.hardware {
             sensorType = hw["sensor_type"]?.stringValue ?? "MAX31856"
@@ -330,12 +332,15 @@ struct SettingsView: View {
     private func applyPID() async {
         let (ok, msg) = await client.updateConfig([
             "pid.kp": kp, "pid.ki": ki, "pid.kd": kd,
+            "pid.control_window": controlWindow, "pid.duty_cycle": dutyCycle,
         ])
         feedback = ok ? "Saved · \(msg)" : msg
         if ok {
             savedKp = kp
             savedKi = ki
             savedKd = kd
+            savedControlWindow = controlWindow
+            savedDutyCycle = dutyCycle
         }
     }
 
