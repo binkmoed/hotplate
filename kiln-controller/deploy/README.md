@@ -38,3 +38,17 @@ Verify after reboot: `journalctl -b -u systemd | grep -i watchdog`
 See `kiln-controller.service` in this directory. It matches the unit
 already installed on the Pi, plus a `KillMode=control-group` hardening
 line (harmless if not re-copied, but recommended).
+
+## In-app server restart
+
+`POST /api/system/restart` restarts the service via
+`sudo -n systemctl restart kiln-controller`. Allow it on the Pi:
+
+```sh
+echo 'kiln ALL=(root) NOPASSWD: /usr/bin/systemctl restart kiln-controller' | \
+  sudo tee /etc/sudoers.d/kiln-restart
+sudo chmod 440 /etc/sudoers.d/kiln-restart
+```
+
+(Replace `kiln` with the user the service runs as, if different.)
+Without this rule the endpoint returns an error and nothing happens.

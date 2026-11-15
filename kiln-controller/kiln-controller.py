@@ -5,6 +5,7 @@ import os
 import time
 import json
 import threading
+import subprocess
 
 from bottle import Bottle, request, response, abort
 from gevent.pywsgi import WSGIServer
@@ -253,6 +254,30 @@ def handle_control():
                 pass
     except WebSocketError:
         pass
+
+
+@app.post('/api/system/restart')
+def handle_system_restart():
+    """Restart the kiln-controller systemd service.
+
+    Requires a sudoers rule on the Pi:
+      kiln ALL=(root) NOPASSWD: /usr/bin/systemctl restart kiln-controller
+    Refuses while a firing is active — a restart aborts it (auto-restart
+    only rescues within the configured window and is best-effort).
+    """
+    response.content_type = 'application/json'
+    if controller.oven.state == 'RUNNING':
+        return json.dumps({'success': False,
+                           'error': 'Stop the firing before restarting the server'})
+    try:
+        # start_new_session: the restart must survive our own process death.
+        subprocess.Popen(
+            ['sudo', '-n', 'systemctl', 'restart', 'kiln-controller'],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, start_new_session=True)
+        return json.dumps({'success': True})
+    except Exception as e:
+        return json.dumps({'success': False, 'error': str(e)})
 
 
 @app.route('/api/sessions')

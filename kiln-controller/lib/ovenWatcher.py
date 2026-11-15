@@ -20,6 +20,10 @@ class OvenWatcher(threading.Thread):
         self.lock = threading.Lock()
         self._last_state = None
         self._last_sample = {}
+        # Highest runtime written to the current session log — guards
+        # against a race producing a RUNNING-labelled sample with a stale
+        # (reset) runtime, which would truncate the app's history chart.
+        self._last_logged_runtime = 0.0
 
     def add_observer(self, ws):
         with self.lock:
@@ -48,6 +52,7 @@ class OvenWatcher(threading.Thread):
         with self.lock:
             self.backlog.clear()
             self.backlog_profile = profile
+        self._last_logged_runtime = 0.0
         if profile is not None and self.session_logger is not None:
             self.session_logger.start(profile)
 
@@ -94,8 +99,13 @@ class OvenWatcher(threading.Thread):
                     # oven resets it), which would otherwise draw the chart
                     # line back to the origin.
                     if state.get('state') in ('RUNNING', 'PAUSED'):
-                        self.session_logger.log(state)
-                        self._last_sample = state
+                        runtime = state.get('runtime') or 0
+                        if runtime >= self._last_logged_runtime:
+                            self._last_logged_runtime = runtime
+                            self.session_logger.log(state)
+                            self._last_sample = state
+                        # Samples with a runtime below the last logged one are
+                        # race artifacts (oven mid-reset) — skip them.
                     self._record_session_event(state.get('state'))
 
                 with self.lock:
