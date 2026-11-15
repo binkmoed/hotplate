@@ -120,7 +120,14 @@ Profile format (`storage/profiles/Name.json`):
 - `POST /api` — commands: `run` (profile, startat), `pause`, `resume`,
   `stop`, `memo`, `stats`
 - `GET /api/stats` — PID stats while firing
-- `GET|POST /api/config` — read/update config
+- `GET|POST /api/config` — read/update config. All `pid.*` values
+  (kp/ki/kd, control_window, duty_cycle) **hot-reload** into a running
+  firing on the next duty cycle; `hardware.*` requires a restart.
+  `pid.duty_cycle` is validated: minimum `temp_settle_time + 1s` so the
+  quiet-period temperature read is never crowded out.
+- `POST /api/system/restart` — restarts the systemd service (used by the
+  app's *Restart Server* button to apply hardware changes). Requires a
+  sudoers rule, see `deploy/README.md`. Refuses while a firing is active.
 - `GET /api/sessions`, `GET /api/sessions/<id>`, `DELETE /api/sessions/<id>` — history
 - WebSockets: `/status` (live state + backlog), `/control` (commands),
   `/storage` (profile CRUD), `/config` (config push)

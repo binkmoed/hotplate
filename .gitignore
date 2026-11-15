@@ -7,3 +7,4 @@ session-ses_2dbd.mdbuild/
 __pycache__/
 *.pyc
 .DS_Store
+kiln-controller/lib/__pycache__/
