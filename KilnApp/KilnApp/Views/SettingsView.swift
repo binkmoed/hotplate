@@ -292,7 +292,10 @@ struct SettingsView: View {
 
     private func sliderRow(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, format: String) -> some View {
         HStack {
-            Text(title).frame(width: 40, alignment: .leading)
+            Text(title)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 56, alignment: .leading)
             Slider(value: value, in: range, step: step)
             Text(String(format: format, value.wrappedValue))
                 .monospacedDigit()
