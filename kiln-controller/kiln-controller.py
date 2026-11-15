@@ -38,6 +38,12 @@ def get_ws():
     return ws
 
 
+def safe_profile_name(name):
+    """Sanitize a profile name for use as a filename (blocks path traversal)."""
+    import re
+    return re.sub(r'[^A-Za-z0-9_-]+', '_', name or '').strip('_')
+
+
 # ---------------------------------------------------------------------------
 # REST routes
 # ---------------------------------------------------------------------------
@@ -351,6 +357,11 @@ def handle_storage():
             if not profile_name:
                 ws.send(json.dumps({'resp': 'FAIL', 'error': 'No profile name'}))
                 return
+            profile_name = safe_profile_name(profile_name)
+            if not profile_name:
+                ws.send(json.dumps({'resp': 'FAIL', 'error': 'Invalid profile name'}))
+                return
+            profile['name'] = profile_name
 
             filepath = os.path.join(config.profiles_dir, f"{profile_name}.json")
 
@@ -383,6 +394,7 @@ def handle_storage():
             if not profile_name:
                 ws.send(json.dumps({'resp': 'FAIL', 'error': 'No profile name'}))
                 return
+            profile_name = safe_profile_name(profile_name)
 
             filepath = os.path.join(config.profiles_dir, f"{profile_name}.json")
 
@@ -505,6 +517,7 @@ class KilnController:
         if saved_state.get('state') == 'RUNNING':
             profile_name = saved_state.get('profile')
             if profile_name:
+                profile_name = safe_profile_name(profile_name)
                 profile_path = os.path.join(config.profiles_dir, f"{profile_name}.json")
                 if os.path.exists(profile_path):
                     try:
@@ -569,6 +582,7 @@ class KilnController:
 
     def run_profile(self, profile_name, startat=0, allow_seek=True):
         try:
+            profile_name = safe_profile_name(profile_name)
             profile_path = os.path.join(config.profiles_dir, f"{profile_name}.json")
             if not os.path.exists(profile_path):
                 return json.dumps({'success': False, 'error': f'profile {profile_name} not found'})
