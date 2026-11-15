@@ -322,9 +322,9 @@ struct StartFiringSheet: View {
                         Text("No profiles. Create one in the Profiles tab.")
                             .foregroundStyle(.secondary)
                     } else {
-                        Picker("Profile", selection: $selectedProfile) {
-                            ForEach(client.profiles) { Text($0.name).tag(Optional($0)) }
-                        }
+                        // The profile was already chosen in the dashboard
+                        // dropdown — confirm it here, don't ask again.
+                        LabeledContent("Profile", value: selectedProfile?.name ?? "—")
                     }
                 }
                 Section {
@@ -359,7 +359,11 @@ struct StartFiringSheet: View {
                 }
             }
             .onAppear {
-                if selectedProfile == nil { selectedProfile = client.profiles.first }
+                // Preselect the profile the user picked on the dashboard
+                // (falls back to the first profile when none is chosen).
+                if selectedProfile == nil {
+                    selectedProfile = client.displayProfile ?? client.profiles.first
+                }
                 prefillSeek()
             }
             .onChange(of: selectedProfile) { _, _ in prefillSeek() }

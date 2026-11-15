@@ -27,7 +27,9 @@ struct TemperatureChart: View {
             }
 
             // Actual measured temperature (thick orange), drawn over the schedule as it runs.
-            ForEach(history) { sample in
+            // Long firings produce thousands of samples; stride them so
+            // Swift Charts stays responsive without losing the early data.
+            ForEach(displayHistory) { sample in
                 LineMark(
                     x: .value("Time", sample.runtime / 60),
                     y: .value("Temp", sample.temperature),
@@ -73,6 +75,23 @@ struct TemperatureChart: View {
         .chartYScale(domain: 0...yUpper)
         .chartXScale(domain: 0...xUpper)
         .chartLegend(.hidden)
+    }
+
+    /// Downsampled view of `history` for drawing (~≤1,500 points), keeping
+    /// first and last samples so the curve always reaches the present.
+    private var displayHistory: [ChartSample] {
+        let maxPoints = 1500
+        guard history.count > maxPoints else { return history }
+        let stride = Double(history.count) / Double(maxPoints)
+        var result: [ChartSample] = []
+        result.reserveCapacity(maxPoints + 1)
+        var next = 0.0
+        while Int(next) < history.count {
+            result.append(history[Int(next)])
+            next += stride
+        }
+        if let last = history.last, result.last != last { result.append(last) }
+        return result
     }
 
     /// X-axis upper bound: profile duration + 30 minutes of padding, minimum 1.
