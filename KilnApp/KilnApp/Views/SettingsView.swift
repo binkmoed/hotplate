@@ -61,6 +61,7 @@ struct SettingsView: View {
             if let conn = client.connection {
                 LabeledContent("Host", value: conn.host)
                 LabeledContent("Port", value: "\(conn.port)")
+                restartRow
                 Button("Reconnect", systemImage: "arrow.clockwise") {
                     Task { await client.reconnect() }
                 }
@@ -71,7 +72,32 @@ struct SettingsView: View {
         } header: {
             Text("Server")
         } footer: {
-            Text("Connected to your kiln controller over the local network.")
+            Text("Restart applies pending hardware/config changes. Needs the sudoers rule from the deploy README on the Pi.")
+        }
+    }
+
+    private var restartRow: some View {
+        HStack {
+            switch client.restartState {
+            case .restarting:
+                Label("Restarting…", systemImage: "arrow.triangle.2.circlepath")
+                    .foregroundStyle(.orange)
+            case .running:
+                Label("Running", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            case .failed(let msg):
+                Label(msg, systemImage: "xmark.octagon.fill")
+                    .foregroundStyle(.red)
+            case .idle:
+                Label(client.isConnected ? "Running" : "Stopped",
+                      systemImage: client.isConnected ? "checkmark.circle.fill" : "stop.circle.fill")
+                    .foregroundStyle(client.isConnected ? .green : .red)
+            }
+            Spacer()
+            Button("Restart Server", systemImage: "arrow.triangle.2.circlepath") {
+                Task { await client.restartServer() }
+            }
+            .disabled(client.restartState == .restarting || client.currentState == .running)
         }
     }
 

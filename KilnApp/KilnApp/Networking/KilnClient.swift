@@ -325,10 +325,9 @@ final class KilnClient: WebSocketServiceDelegate {
                     temperature: temp,
                     target: status.target ?? 0
                 ))
-                // Cap history length to keep the chart responsive over long firings.
-                if self.history.count > 1200 {
-                    self.history.removeFirst(self.history.count - 1200)
-                }
+                // No cap: a long firing must keep its full curve (the old
+                // 1,200-sample cap erased everything older than ~1 hour at
+                // a 3 s duty cycle). TemperatureChart downsamples for display.
             }
             self.handleStateNotifications(status.state)
         }
@@ -402,6 +401,53 @@ final class KilnClient: WebSocketServiceDelegate {
         get { UserDefaults.standard.object(forKey: "kiln.firingTransition") as? Date ?? .distantPast }
         set { UserDefaults.standard.set(newValue, forKey: "kiln.firingTransition") }
     }
+
+    // MARK: - Server restart
+
+    enum ServerRestartState: Equatable {
+        case idle
+        case restarting
+        case running
+        case failed(String)
+    }
+
+    private(set) var restartState: ServerRestartState = .idle
+
+    /// Ask the controller to restart its own systemd service, then poll
+    /// health until it is back. Transitions: restarting → running/failed.
+    func restartServer() async {
+        guard let rest, connection != nil else { return }
+        guard currentState != .running else {
+            restartState = .failed("Stop the firing first")
+            return
+        }
+        restartState = .restarting
+        // The request usually dies mid-response as the server exits — a
+        // transport error here is expected success, only a clean
+        // {"success": false} body counts as a real refusal.
+        do { try await rest.restartServer() }
+        catch let error as APIError {
+            if case .server(let msg) = error {
+                restartState = .failed(msg)
+                return
+            }
+        } catch { /* transport error — server went down, expected */ }
+
+        // Give systemd a moment to stop the old process before polling.
+        try? await Task.sleep(for: .seconds(2))
+        let poll = ControllerAPI(baseURL: connection!.httpBase, session: session)
+        for _ in 0..<30 {
+            if (try? await poll.checkHealth()) == true {
+                await reconnect()
+                restartState = .running
+                return
+            }
+            try? await Task.sleep(for: .seconds(2))
+        }
+        restartState = .failed("Server did not come back within 60 s")
+    }
+
+    func acknowledgeRestartState() { restartState = .idle }
 
     // MARK: - Outbound via WS
 

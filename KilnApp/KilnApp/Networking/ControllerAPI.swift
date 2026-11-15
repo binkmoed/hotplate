@@ -63,6 +63,16 @@ struct ControllerAPI: Sendable {
     }
 
     func stop() async throws { try await sendCommand(["cmd": "stop"]) }
+
+    /// `POST /api/system/restart` — restarts the controller service (systemd).
+    /// Refused server-side while a firing is active.
+    func restartServer() async throws {
+        let (data, _) = try await postJSON([:], path: "/api/system/restart")
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           obj["success"] as? Bool != true {
+            throw APIError.server((obj["error"] as? String) ?? "Restart failed")
+        }
+    }
     func pause() async throws { try await sendCommand(["cmd": "pause"]) }
     func resume() async throws { try await sendCommand(["cmd": "resume"]) }
 
