@@ -219,9 +219,9 @@ struct SettingsView: View {
             guideRow("Duty cycle", "Length of one SSR on/off cycle. The PID output decides what fraction of each cycle the elements are on. Short = finer control but more relay switching; long = coarser but gentler on hardware.")
             guideRow("Currency · kWh rate", "Used only to display an estimated electricity cost of each firing. No effect on control.")
             guideRow("Element power", "Kiln's power draw in kW. Feeds the cost estimate; no effect on control.")
+            guideRow("History · PID tile", "Each recorded firing stores the PID gains in use at every moment. The tile shows the gains (kp/ki/kd); “varied” means you tuned mid-firing — handy for comparing curves.")
             guideRow("Sensor · thermocouple", "Which sensor board and thermocouple type the Pi reads. Must match your hardware or temperatures will be wrong. Changing it requires a server restart.")
             guideRow("Restart Server", "Applies pending config changes that need a fresh start (like the sensor choice). Refuses to run while a firing is active, so a firing is never interrupted.")
-            guideRow("History · PID tile", "Each recorded firing stores the PID gains in use at every moment. The tile shows the gains (kp/ki/kd); “varied” means you tuned mid-firing — handy for comparing curves.")
         } header: {
             Text("Settings Guide")
         } footer: {
