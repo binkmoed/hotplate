@@ -291,8 +291,10 @@ def handle_system_restart():
                            'error': 'Stop the firing before restarting the server'})
     try:
         # start_new_session: the restart must survive our own process death.
+        # Absolute paths: the systemd unit's PATH only contains the venv.
         subprocess.Popen(
-            ['sudo', '-n', 'systemctl', 'restart', 'kiln-controller'],
+            ['/usr/bin/sudo', '-n', '/usr/bin/systemctl',
+             'restart', 'kiln-controller'],
             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL, start_new_session=True)
         return json.dumps({'success': True})
