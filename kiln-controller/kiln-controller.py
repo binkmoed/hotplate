@@ -170,6 +170,20 @@ def update_config():
                                  "Only Type K is supported."
                     })
 
+        if 'pid.duty_cycle' in updates:
+            try:
+                dc = float(updates['pid.duty_cycle'])
+            except (ValueError, TypeError):
+                return json.dumps({'success': False, 'error': 'Invalid duty cycle value'})
+            # The cycle must reserve temp_settle_time for the quiet-period
+            # temperature read plus at least 1s of meaningful heating.
+            min_dc = config.temp_settle_time + 1.0
+            if dc < min_dc:
+                return json.dumps({
+                    'success': False,
+                    'error': f"Duty cycle too short: minimum {min_dc}s "
+                             f"(temp settle {config.temp_settle_time}s + 1s heating)"})
+
         if 'hardware.sensor_type' in updates:
             new_sensor = str(updates['hardware.sensor_type']).upper()
             if new_sensor != sensor_type:
