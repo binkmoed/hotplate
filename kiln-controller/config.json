@@ -18,12 +18,12 @@
     "kd": 12.0,
     "control_window": 50.0,
     "max_ssr_on_time": 6.0,
-    "duty_cycle": 3.0,
-    "max_ssr_on_percentage": 90.0,
+    "duty_cycle": 1.5,
+    "max_ssr_on_percentage": 100.0,
     "temp_settle_time": 0.5
   },
   "safety": {
-    "emergency_shutoff_temp": 1300.0,
+    "emergency_shutoff_temp": 300.0,
     "emergency_shutoff_temp_scale": "c",
     "ignore_temp_too_high": false,
     "max_tc_error_rate": 0.3,

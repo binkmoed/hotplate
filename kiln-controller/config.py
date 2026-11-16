@@ -84,12 +84,12 @@ class Config:
                 "kd": 12.0,
                 "control_window": 50.0,
                 "max_ssr_on_time": 6.0,
-                "duty_cycle": 3.0,
-                "max_ssr_on_percentage": 90.0,
+                "duty_cycle": 1.5,
+                "max_ssr_on_percentage": 100.0,
                 "temp_settle_time": 0.5,
             },
             "safety": {
-                "emergency_shutoff_temp": 1300.0,
+                "emergency_shutoff_temp": 300.0,
                 "emergency_shutoff_temp_scale": "c",
                 "ignore_temp_too_high": False,
                 "max_tc_error_rate": 0.3,
@@ -268,7 +268,7 @@ class Config:
 
     @property
     def duty_cycle(self):
-        return self.get("pid", "duty_cycle", default=3.0)
+        return self.get("pid", "duty_cycle", default=1.5)
 
     @property
     def max_consecutive_read_failures(self):
@@ -284,7 +284,7 @@ class Config:
 
     @property
     def max_ssr_on_percentage(self):
-        return self.get("pid", "max_ssr_on_percentage", default=90.0)
+        return self.get("pid", "max_ssr_on_percentage", default=100.0)
 
     @property
     def temp_settle_time(self):
@@ -292,7 +292,7 @@ class Config:
 
     @property
     def emergency_shutoff_temp(self):
-        return self.get("safety", "emergency_shutoff_temp", default=1300.0)
+        return self.get("safety", "emergency_shutoff_temp", default=300.0)
 
     @property
     def emergency_shutoff_temp_scale(self):
