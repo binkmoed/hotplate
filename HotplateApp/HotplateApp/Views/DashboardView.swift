@@ -372,9 +372,10 @@ struct StartFiringSheet: View {
     }
 
     /// Slider max: leave at least the last 10 s of the profile so a firing
-    /// always runs some of the schedule.
+    /// always runs some of the schedule. Floored at 5 so the Slider always
+    /// has a valid non-degenerate range (crashed when 0...0 with a step).
     private var maxSeconds: Double {
-        max((selectedProfile?.data.last?.time ?? 0) - 10, 0)
+        max((selectedProfile?.data.last?.time ?? 0) - 10, 5)
     }
 
     /// Where the schedule first reaches the current hotplate temperature —

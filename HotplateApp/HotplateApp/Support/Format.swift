@@ -8,20 +8,6 @@ enum Format {
         return "\(Int(value.rounded()))\(symbol)"
     }
 
-    /// Duration from seconds using the given scale.
-    static func duration(_ seconds: Double?, scale: String = "m") -> String {
-        guard let seconds else { return "—" }
-        switch scale.lowercased() {
-        case "s": return "\(Int(seconds))s"
-        case "h":
-            let h = seconds / 3600
-            return String(format: "%.\(abs(h) < 10 ? 1 : 0)f h", h)
-        default:
-            let m = seconds / 60
-            return String(format: "%.\(abs(m) < 10 ? 1 : 0)f m", m)
-        }
-    }
-
     /// A `h:mm:ss` style clock for runtime.
     static func clock(_ seconds: Double?) -> String {
         guard let seconds, seconds.isFinite else { return "0:00" }
