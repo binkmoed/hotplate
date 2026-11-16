@@ -309,7 +309,7 @@ struct StartFiringSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedProfile: Profile?
-    @State private var startAtMinutes: Double = 0
+    @State private var startAtSeconds: Double = 0
     @State private var isStarting = false
 
     var body: some View {
@@ -327,9 +327,9 @@ struct StartFiringSheet: View {
                 }
                 Section {
                     VStack(alignment: .leading) {
-                        Text("Start at: \(Int(startAtMinutes)) min")
-                        Slider(value: $startAtMinutes, in: 0...maxMinutes, step: 1)
-                        if startAtMinutes > suggestedMinutes {
+                        Text("Start at: \(Int(startAtSeconds)) s")
+                        Slider(value: $startAtSeconds, in: 0...maxSeconds, step: 5)
+                        if startAtSeconds > suggestedSeconds {
                             Text("You are skipping ahead of the current temperature.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
@@ -366,36 +366,38 @@ struct StartFiringSheet: View {
             }
             .onChange(of: selectedProfile) { _, _ in prefillSeek() }
             .onDisappear {
-                startAtMinutes = 0
+                startAtSeconds = 0
             }
         }
     }
 
-    private var maxMinutes: Double {
-        max((selectedProfile?.data.last?.time ?? 0) / 60, 1)
+    /// Slider max: leave at least the last 10 s of the profile so a firing
+    /// always runs some of the schedule.
+    private var maxSeconds: Double {
+        max((selectedProfile?.data.last?.time ?? 0) - 10, 0)
     }
 
     /// Where the schedule first reaches the current hotplate temperature —
     /// same rule the server used to apply silently. Prefills the slider so
     /// what you see is what will happen; dragging back to 0 forces a cold
     /// start because we now send an explicit startat with seek disabled.
-    private var suggestedMinutes: Double {
+    private var suggestedSeconds: Double {
         guard let profile = selectedProfile,
               let currentTemp = client.status?.temperature else { return 0 }
-        return profile.seekSeconds(forCurrentTemp: currentTemp) / 60
+        return min(profile.seekSeconds(forCurrentTemp: currentTemp), maxSeconds)
     }
 
     private func prefillSeek() {
-        startAtMinutes = suggestedMinutes
+        startAtSeconds = min(suggestedSeconds, maxSeconds)
     }
 
     private func start() async {
         guard let profile = selectedProfile else { return }
         isStarting = true
-        await client.run(profile: profile.name, startAt: startAtMinutes * 60)
+        await client.run(profile: profile.name, startAt: startAtSeconds)
         isStarting = false
         if client.lastCommandError == nil {
-            startAtMinutes = 0   // Reset so next firing starts at 0 min.
+            startAtSeconds = 0   // Reset so next firing starts at 0 s.
             dismiss()
         }
     }
