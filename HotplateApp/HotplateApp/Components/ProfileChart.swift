@@ -32,16 +32,16 @@ struct ProfileChart: View {
         return 500
     }
 
-    /// Domain upper bound: one hour past the last point's time (minimum 1 to avoid an empty range).
-    private var xMaxMinutes: Double {
-        max(1, (points.last?.time ?? 0) / 60 + 60)
+    /// Domain upper bound: some headroom past the last point (minimum 60 s).
+    private var xMaxSeconds: Double {
+        max(60, (points.last?.time ?? 0) + 60)
     }
 
     var body: some View {
         Chart {
             ForEach(Array(points.enumerated()), id: \.element) { idx, point in
                 LineMark(
-                    x: .value("Time", point.time / 60),
+                    x: .value("Time", point.time),
                     y: .value("Temp", point.temp)
                 )
                 .interpolationMethod(.linear)
@@ -50,19 +50,19 @@ struct ProfileChart: View {
             }
             ForEach(Array(points.enumerated()), id: \.element) { idx, point in
                 PointMark(
-                    x: .value("Time", point.time / 60),
+                    x: .value("Time", point.time),
                     y: .value("Temp", point.temp)
                 )
                 .foregroundStyle(pointColor(idx))
                 .symbolSize(idx == draggingIndex ? 200 : 130)
             }
         }
-        .chartXScale(domain: 0...xMaxMinutes)
+        .chartXScale(domain: 0...xMaxSeconds)
         .chartYScale(domain: 0...yUpper)
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 6)) { v in
                 AxisGridLine()
-                AxisValueLabel { if let m = v.as(Double.self) { Text(formatHours(m)) } }
+                AxisValueLabel { if let s = v.as(Double.self) { Text(formatTime(s)) } }
             }
         }
         .chartYAxis {
@@ -96,19 +96,19 @@ struct ProfileChart: View {
                 lastTouch = value.location
                 guard let plotFrame = proxy.plotFrame else { return }
                 let origin = geo[plotFrame].origin
-                guard let mins = proxy.value(atX: value.location.x - origin.x, as: Double.self),
+                guard let secs = proxy.value(atX: value.location.x - origin.x, as: Double.self),
                       let temp = proxy.value(atY: value.location.y - origin.y, as: Double.self) else { return }
                 if draggingIndex == nil {
-                    draggingIndex = nearestIndex(toMinutes: mins, temp: temp)
+                    draggingIndex = nearestIndex(toSeconds: secs, temp: temp)
                 }
                 guard let i = draggingIndex, points.indices.contains(i) else { return }
-                var newTime = max(0, mins * 60)
-                if i == 0 { newTime = min(newTime, points.count > 1 ? points[1].time - 60 : newTime) }
+                var newTime = max(0, secs)
+                if i == 0 { newTime = min(newTime, points.count > 1 ? points[1].time - 10 : newTime) }
                 if i == points.count - 1 && i > 0 {
-                    newTime = max(newTime, points[i - 1].time + 60)
+                    newTime = max(newTime, points[i - 1].time + 10)
                 }
-                if i > 0 { newTime = max(newTime, points[i - 1].time + 30) }
-                if i < points.count - 1 { newTime = min(newTime, points[i + 1].time - 30) }
+                if i > 0 { newTime = max(newTime, points[i - 1].time + 5) }
+                if i < points.count - 1 { newTime = min(newTime, points[i + 1].time - 5) }
                 points[i].time = newTime
                 points[i].temp = min(max(0, temp), yMaxTemp)
             }
@@ -125,9 +125,9 @@ struct ProfileChart: View {
     private func handleLongPress(proxy: ChartProxy, geo: GeometryProxy) {
         guard let touch = lastTouch,
               let plotFrame = proxy.plotFrame,
-              let mins = proxy.value(atX: touch.x - geo[plotFrame].origin.x, as: Double.self),
+              let secs = proxy.value(atX: touch.x - geo[plotFrame].origin.x, as: Double.self),
               let temp = proxy.value(atY: touch.y - geo[plotFrame].origin.y, as: Double.self) else { return }
-        let i = nearestIndex(toMinutes: mins, temp: temp)
+        let i = nearestIndex(toSeconds: secs, temp: temp)
         guard points.indices.contains(i) else { return }
         // Don't delete below two points.
         guard points.count > 2 else {
@@ -148,11 +148,11 @@ struct ProfileChart: View {
 
     // MARK: Helpers
 
-    private func nearestIndex(toMinutes m: Double, temp t: Double) -> Int {
+    private func nearestIndex(toSeconds s: Double, temp t: Double) -> Int {
         var best = 0
         var bestDist = Double.infinity
         for (i, p) in points.enumerated() {
-            let dx = (p.time / 60 - m)
+            let dx = (p.time - s) / 60    // scale seconds so temp distance stays comparable
             let dy = (p.temp - t) / 50      // scale temp for fair distance
             let d = dx * dx + dy * dy
             if d < bestDist { bestDist = d; best = i }
@@ -160,16 +160,18 @@ struct ProfileChart: View {
         return best
     }
 
-    private func formatHours(_ minutes: Double) -> String {
-        let total = Int(minutes.rounded())
-        let h = total / 60
-        let m = total % 60
-        return h > 0 ? "\(h)h\(m)m" : "\(m)m"
+    /// Axis label: "45s" under a minute, "4:30" under an hour, "1h05" beyond.
+    private func formatTime(_ seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        if h > 0 { return "\(h)h\(String(format: "%02d", m))" }
+        if total < 60 { return "\(s)s" }
+        return String(format: "%d:%02d", m, s)
     }
 }
 
 /// Row-based fallback editor shown below the chart for precise numeric edits.
-/// Time is entered in whole minutes and temperature in whole degrees.
+/// Time is entered in whole seconds and temperature in whole degrees.
 struct ProfilePointList: View {
     @Binding var points: [Profile.Point]
 
@@ -179,11 +181,11 @@ struct ProfilePointList: View {
                 fieldColumn(
                     title: "TIME",
                     value: Binding(
-                        get: { Int((point.time / 60).rounded()) },
-                        set: { points[idx].time = max(0, Double($0) * 60) }
+                        get: { Int(point.time.rounded()) },
+                        set: { points[idx].time = max(0, Double($0)) }
                     ),
-                    unit: "min",
-                    range: 0...1440
+                    unit: "sec",
+                    range: 0...86400
                 )
 
                 Divider().frame(height: 36)
@@ -210,7 +212,7 @@ struct ProfilePointList: View {
         }
         Button {
             let last = points.last?.time ?? 0
-            points.append(.init(time: last + 3600, temp: points.last?.temp ?? 200))
+            points.append(.init(time: last + 300, temp: points.last?.temp ?? 200))
             points.sort { $0.time < $1.time }
         } label: {
             Label("Add Point", systemImage: "plus")
