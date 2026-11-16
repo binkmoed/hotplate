@@ -141,7 +141,7 @@ struct ProfileEditorView: View {
         }
         let forceWrite = force || overwriteOther || client.profiles.contains { $0.name == toSave.name }
         var didWrite = false
-        client.saveProfile(toSave, force: forceWrite) { ok in didWrite = ok }
+        client.saveProfile(toSave, force: forceWrite, originalName: originalName) { ok in didWrite = ok }
         // Give the server a beat to push the updated list, then refresh.
         try? await Task.sleep(nanoseconds: 400_000_000)
         client.refreshStorage()

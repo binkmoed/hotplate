@@ -380,6 +380,14 @@ def handle_storage():
             with open(filepath, 'w') as f:
                 json.dump(profile, f, indent=2)
 
+            # Rename: removing the original file when the name changed
+            original_name = safe_profile_name(data.get('originalName', ''))
+            if original_name and original_name != profile_name:
+                try:
+                    os.remove(os.path.join(config.profiles_dir, f"{original_name}.json"))
+                except OSError:
+                    pass
+
             ws.send(json.dumps({
                 'cmd': 'PUT',
                 'profile': profile,

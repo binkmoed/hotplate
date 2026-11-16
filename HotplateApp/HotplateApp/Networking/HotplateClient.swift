@@ -452,9 +452,9 @@ final class HotplateClient: WebSocketServiceDelegate {
     // MARK: - Outbound via WS
 
     func refreshStorage() { ws?.storageList() }
-    func saveProfile(_ profile: Profile, force: Bool, completion: @escaping (Bool) -> Void) {
+    func saveProfile(_ profile: Profile, force: Bool, originalName: String? = nil, completion: @escaping (Bool) -> Void) {
         guard let ws else { completion(false); return }
-        ws.storagePut(profile: profile, force: force)
+        ws.storagePut(profile: profile, force: force, originalName: originalName)
         // The server pushes the updated list right after a successful PUT; rely on the
         // list update rather than a per-write ack. Optimistic completion after a tick.
         completion(true)

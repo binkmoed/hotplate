@@ -62,12 +62,16 @@ final class WebSocketService: @unchecked Sendable {
     // MARK: - Outbound (storage / control)
 
     /// `PUT` (save) a profile via `/storage`. `force` overwrites an existing name.
-    func storagePut(profile: Profile, force: Bool) {
-        let body: [String: Any] = [
+    /// `originalName` lets the server delete the old file when renaming.
+    func storagePut(profile: Profile, force: Bool, originalName: String? = nil) {
+        var body: [String: Any] = [
             "cmd": "PUT",
             "profile": profile.asJSONObject,
             "force": force,
         ]
+        if let originalName, !originalName.isEmpty {
+            body["originalName"] = originalName
+        }
         sendJSON(Self.storagePath, body: body)
     }
 
