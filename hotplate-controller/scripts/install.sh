@@ -23,9 +23,18 @@ sudo apt upgrade -y
 echo "3. Installing dependencies..."
 sudo apt install -y python3 python3-pip python3-venv python3-dev libgpiod-dev git
 
-echo "4. Enabling SPI..."
+echo "3b. Enabling SPI without claiming the CE pins..."
 sudo raspi-config nonint do_spi 0
-echo "SPI enabled. Reboot required for changes to take effect."
+# The Adafruit MAX31856 driver toggles chip-select as a plain GPIO; the default
+# SPI overlay claims CE0/CE1 and makes that fail with 'Device or resource busy'.
+if ! grep -q '^dtoverlay=spi0-0cs' /boot/firmware/config.txt 2>/dev/null; then
+    echo 'dtoverlay=spi0-0cs' | sudo tee -a /boot/firmware/config.txt > /dev/null
+fi
+sudo mkdir -p /etc/sudoers.d
+if [ ! -f /etc/sudoers.d/hotplate-restart ]; then
+    echo "$USER ALL=(root) NOPASSWD: /usr/bin/systemctl restart hotplate-controller" | sudo tee /etc/sudoers.d/hotplate-restart > /dev/null
+    sudo chmod 440 /etc/sudoers.d/hotplate-restart
+fi
 
 echo "5. Creating installation directory..."
 mkdir -p "$INSTALL_DIR"

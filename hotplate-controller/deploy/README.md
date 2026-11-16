@@ -6,12 +6,21 @@ The Pi checkout at `~/hotplate-controller` is not a git clone; copy changed
 files across and restart the service:
 
 ```sh
-scp hotplate-controller/{hotplate-controller.py,config.py} oven@192.168.178.35:~/hotplate-controller/
-scp hotplate-controller/lib/{oven.py,ovenWatcher.py,sessionlog.py} oven@192.168.178.35:~/hotplate-controller/lib/
-ssh oven@192.168.178.35 'sudo systemctl restart hotplate-controller'
+scp hotplate-controller/{hotplate-controller.py,config.py} pi@192.168.178.35:~/hotplate-controller/
+scp hotplate-controller/lib/{oven.py,ovenWatcher.py,sessionlog.py} pi@192.168.178.35:~/hotplate-controller/lib/
+ssh pi@192.168.178.35 'sudo systemctl restart hotplate-controller'
 ```
 
 Only restart when no firing is running.
+
+## SPI overlay requirement
+
+The MAX31856 driver toggles chip-select as a plain GPIO, but the default
+Bookworm SPI overlay claims CE0/CE1 (`Device or resource busy` on sensor
+init). `scripts/install.sh` appends `dtoverlay=spi0-0cs` to
+`/boot/firmware/config.txt`; on an existing Pi you can add it by hand —
+reboot required. Symptom if missing: no temperature readings.
+
 
 ## Hardware watchdog (recommended, one-time)
 
@@ -50,5 +59,5 @@ echo 'hotplate ALL=(root) NOPASSWD: /usr/bin/systemctl restart hotplate-controll
 sudo chmod 440 /etc/sudoers.d/hotplate-restart
 ```
 
-(Replace `hotplate` with the user the service runs as, if different.)
+(The install script adds this automatically.)
 Without this rule the endpoint returns an error and nothing happens.

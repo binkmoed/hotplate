@@ -10,6 +10,8 @@ Environment=PATH=/home/pi/hotplate-controller/venv/bin
 ExecStart=/home/pi/hotplate-controller/venv/bin/python3 hotplate-controller.py
 Restart=always
 RestartSec=10
+# Kill any lingering process group so the SSR can never be left driven.
+KillMode=control-group
 StandardOutput=journal
 StandardError=journal
 
