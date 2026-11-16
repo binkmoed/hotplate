@@ -1,0 +1,36 @@
+name: HotplateApp
+options:
+  bundleIdPrefix: com.binkhotplate
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    DEVELOPMENT_TEAM: "VULUT953K6"
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: "Apple Development"
+
+targets:
+  HotplateApp:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: HotplateApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.binkhotplate.HotplateApp
+        PRODUCT_NAME: Hotplate
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Hotplate connects to your hotplate controller on your local network to monitor and control firings."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Hotplate uses the camera to scan QR codes for server setup."
+        TARGETED_DEVICE_FAMILY: "1,2"

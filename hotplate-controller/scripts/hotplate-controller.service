@@ -1,0 +1,17 @@
+[Unit]
+Description=Hotplate Controller Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/hotplate-controller
+Environment=PATH=/home/pi/hotplate-controller/venv/bin
+ExecStart=/home/pi/hotplate-controller/venv/bin/python3 hotplate-controller.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

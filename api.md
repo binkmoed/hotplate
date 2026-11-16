@@ -1,4 +1,4 @@
-# Kiln Controller — Full API Reference (`api.md`)
+# Hotplate Controller — Full API Reference (`api.md`)
 
 Base URL on the LAN: `http://192.168.178.120:8080`
 Protocol: plain HTTP/1.1 + WebSocket (no TLS, no auth) by default.
@@ -8,7 +8,7 @@ server is a single-process Bottle app on gevent; WebSockets are handled by
 `geventwebsocket`.
 
 This reference is derived directly from the source
-(`kiln-controller.py`, `lib/oven.py`, `lib/ovenWatcher.py`, `config.py`).
+(`hotplate-controller.py`, `lib/oven.py`, `lib/ovenWatcher.py`, `config.py`).
 
 ---
 
@@ -406,7 +406,7 @@ Pushed on `/status` (after the backlog). All fields are always present when
 `state == "RUNNING"`; some are `0`/`null`/`{}` when `IDLE`.
 
 ```ts
-interface KilnStateFrame {
+interface HotplateStateFrame {
   cost: number;              // running energy cost (currency from /config)
   runtime: number;           // seconds since profile start
   temperature: number;       // current oven temp, in temp_scale, incl. offset

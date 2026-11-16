@@ -1,7 +1,7 @@
-# BinkKiln User Manual
+# Hotplate User Manual
 
-A practical guide to firing your kiln with the BinkKiln system: a Raspberry
-Pi controller mounted on the kiln ("Oven") and the KilnApp on your iPhone.
+A practical guide to firing your hotplate with the Hotplate system: a Raspberry
+Pi controller mounted on the hotplate ("Oven") and the HotplateApp on your iPhone.
 
 ---
 
@@ -9,9 +9,9 @@ Pi controller mounted on the kiln ("Oven") and the KilnApp on your iPhone.
 
 | Part | Where | What it does |
 |---|---|---|
-| **Controller** | Raspberry Pi on the kiln | Reads the thermocouple, runs PID, switches the elements via SSR + safety relay, logs every firing |
-| **KilnApp** | Your iPhone | Live dashboard, start/stop firings, edit profiles, review history, change settings |
-| **Firing profile** | Stored on the Pi | A schedule of `[time, temperature]` points the kiln follows |
+| **Controller** | Raspberry Pi on the hotplate | Reads the thermocouple, runs PID, switches the elements via SSR + safety relay, logs every firing |
+| **HotplateApp** | Your iPhone | Live dashboard, start/stop firings, edit profiles, review history, change settings |
+| **Firing profile** | Stored on the Pi | A schedule of `[time, temperature]` points the hotplate follows |
 
 The app talks to the controller over your home WiFi — there is no cloud
 service; the phone must be on the same network as the Pi.
@@ -28,22 +28,22 @@ service; the phone must be on the same network as the Pi.
 
 ## 2. Daily use: running a firing
 
-1. **Connect** — open KilnApp; on first use enter the Pi's address
+1. **Connect** — open HotplateApp; on first use enter the Pi's address
    (e.g. `http://192.168.178.35:8080`). The app remembers it. A red
    "Offline" wifi icon means the controller can't be reached.
 2. **Choose a profile** — on the Dashboard, pick the profile from the
    picker (e.g. *Lead_Free*, *Bisque*).
 3. **Start** — tap **Start**, confirm in the sheet. The flame 🔥 icon
-   appears while firing. If the kiln is already warm, *seek-start* jumps
+   appears while firing. If the hotplate is already warm, *seek-start* jumps
    the schedule to the current temperature instead of reheating from
    ambient.
 4. **Watch** — the dashboard shows current temperature, target, runtime,
    running cost (kWh × your tariff) and a live chart of actual vs.
    scheduled temperature.
 5. **Pause / Resume** — useful for openings or waiting; the schedule
-   freezes with the kiln.
+   freezes with the hotplate.
 6. **Completion** — when the profile finishes you get a
-   **"Firing Completed"** alert with final runtime and cost. The kiln
+   **"Firing Completed"** alert with final runtime and cost. The hotplate
    cools following the profile's cooldown segment.
 
 ### Stopping early
@@ -76,7 +76,7 @@ the elements **ionizes and becomes conductive**, and the resulting
 electrical noise skews the MAX31856's SPI measurements. A temperature
 sampled mid-heat could read wildly wrong — and a falsely *low* reading
 would drive the PID to dump even more power into an already-at-temperature
-kiln. Quiet-window sampling guarantees every temperature the PID and the
+hotplate. Quiet-window sampling guarantees every temperature the PID and the
 safety interlocks act on is trustworthy. (If the sensor does fail to read
 — e.g. a transient fault — the controller retries, logs a `sensor_retry`
 event, and aborts rather than heating blind.)
@@ -86,12 +86,12 @@ event, and aborts rather than heating blind.)
 | Reason | Meaning | What to check |
 |---|---|---|
 | *Full power for Xs but temperature rose only Y°* (heating stall) | Elements, SSR or thermocouple not working | Element continuity, SSR wiring, thermocouple placement |
-| Over-temperature | Kiln exceeded the emergency shutoff (default 1300 °C) | Profile correctness, thermocouple reading |
+| Over-temperature | Hotplate exceeded the emergency shutoff (default 1300 °C) | Profile correctness, thermocouple reading |
 | Too many sensor errors | Thermocouple readings unreliable | Connections, interference, sensor health |
 
 **Do not just restart** after an abort — investigate the reason in the
 History screen first. This is the big safety advantage over e.g. a
-Bentrup TC88, which would run a broken kiln "to completion" cold.
+Bentrup TC88, which would run a broken hotplate "to completion" cold.
 
 ---
 
@@ -145,9 +145,9 @@ Changes are pushed to the controller immediately.
 - If power is lost mid-firing, on reboot the controller can **resume the
   firing** if it restarts within the configured window (default 15
   minutes) and seek-start is on — otherwise the session is marked
-  interrupted and the kiln stays off.
+  interrupted and the hotplate stays off.
 - A hardware watchdog reboots the Pi if the software ever hangs while the
-  elements are on (one-time setup, see `kiln-controller/deploy/README.md`).
+  elements are on (one-time setup, see `hotplate-controller/deploy/README.md`).
 
 ---
 
@@ -162,5 +162,5 @@ Changes are pushed to the controller immediately.
 | Cost looks wrong | Check element kW in Hardware settings and the kWh rate in Display settings |
 
 For developer/setup documentation see the main
-[README](../README.md), [KilnApp](../KilnApp/README.md) and
-[controller](../kiln-controller/README.md) docs.
+[README](../README.md), [HotplateApp](../HotplateApp/README.md) and
+[controller](../hotplate-controller/README.md) docs.
