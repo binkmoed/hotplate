@@ -16,7 +16,7 @@ struct TemperatureChart: View {
             if let schedule {
                 ForEach(schedule, id: \.time) { p in
                     LineMark(
-                        x: .value("Time", p.time / 60),
+                        x: .value("Time", p.time),
                         y: .value("Temp", p.temp),
                         series: .value("Series", "schedule")
                     )
@@ -31,7 +31,7 @@ struct TemperatureChart: View {
             // Swift Charts stays responsive without losing the early data.
             ForEach(displayHistory) { sample in
                 LineMark(
-                    x: .value("Time", sample.runtime / 60),
+                    x: .value("Time", sample.runtime),
                     y: .value("Temp", sample.temperature),
                     series: .value("Series", "actual")
                 )
@@ -43,7 +43,7 @@ struct TemperatureChart: View {
             // End-time label under the last schedule point.
             if let schedule, let lastPoint = schedule.last {
                 PointMark(
-                    x: .value("Time", lastPoint.time / 60),
+                    x: .value("Time", lastPoint.time),
                     y: .value("Temp", lastPoint.temp)
                 )
                 .foregroundStyle(.clear)
@@ -60,7 +60,7 @@ struct TemperatureChart: View {
             AxisMarks(values: [0.0, xUpper]) { value in
                 AxisGridLine()
                 AxisValueLabel {
-                    if let v = value.as(Double.self) { Text(formatHours(v)) }
+                    if let v = value.as(Double.self) { Text(formatTime(v)) }
                 }
             }
         }
@@ -94,10 +94,10 @@ struct TemperatureChart: View {
         return result
     }
 
-    /// X-axis upper bound: profile duration + 30 minutes of padding, minimum 1.
+    /// X-axis upper bound: profile duration + some padding (minimum 60 s).
     private var xUpper: Double {
-        let endMinutes = (total ?? schedule?.last?.time ?? history.last?.runtime ?? 0) / 60
-        return Swift.max(1, endMinutes + 30)
+        let end = total ?? schedule?.last?.time ?? history.last?.runtime ?? 0
+        return Swift.max(60, end + Swift.max(60, end * 0.05))
     }
 
     /// Y-axis upper bound: highest of schedule / measured temperature + 10%
@@ -117,18 +117,23 @@ struct TemperatureChart: View {
         return 500
     }
 
-    private func formatHours(_ minutes: Double) -> String {
-        let total = Int(minutes.rounded())
-        let h = total / 60
-        let m = total % 60
-        return h > 0 ? "\(h)h\(m)m" : "\(m)m"
+    /// Axis label: "45s" under a minute, "4:30" under an hour, "1h05" beyond.
+    private func formatTime(_ seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        if h > 0 { return "\(h)h\(String(format: "%02d", m))" }
+        if total < 60 { return "\(s)s" }
+        return String(format: "%d:%02d", m, s)
     }
 
-    /// Format the profile end-time (seconds) as "Xh Ym".
+    /// Format the profile end-time (seconds) as "1h 05m" or "4:30".
     private func formatEndtime(_ seconds: Double) -> String {
         let total = Int(seconds.rounded())
         let h = total / 3600
         let m = (total % 3600) / 60
-        return h > 0 ? "\(h)h \(m)m" : "\(m)m"
+        let s = total % 60
+        if h > 0 { return "\(h)h \(String(format: "%02d", m))m" }
+        if total < 3600 { return String(format: "%d:%02d", m, s) }
+        return "\(m)m"
     }
 }
